@@ -13,11 +13,13 @@ package com.vedicastrology.app.engine
 data class BirthData(
     val year: Int, val month: Int, val day: Int,
     val hour: Int, val minute: Int,
-    /** UTC offset in hours, e.g. 6.5 for Myanmar. */
+    /** UTC offset in hours, e.g. 6.5 for Myanmar. Ignored when [timeInGmt] is true. */
     val tzOffset: Double,
     val latitude: Double,
     val longitude: Double,
-    val placeName: String = ""
+    val placeName: String = "",
+    /** When true, hour/minute are already GMT — no timezone conversion is applied. */
+    val timeInGmt: Boolean = false
 )
 
 /** One planet row plus display helpers (retrograde comes from the ephemeris). */
@@ -46,7 +48,9 @@ object ChartCalculator {
         natalData: BirthData = data,
         useTrueRahu: Boolean = true
     ): ChartResult {
-        val hourUtc = data.hour + data.minute / 60.0 - data.tzOffset
+        // GMT mode: time is already GMT, skip timezone conversion (works for any location).
+        val effTz = if (data.timeInGmt) 0.0 else data.tzOffset
+        val hourUtc = data.hour + data.minute / 60.0 - effTz
         val jd = Ephemeris.julianDay(data.year, data.month, data.day, hourUtc)
 
         val longitudes = mutableMapOf<String, Double>()
@@ -65,9 +69,10 @@ object ChartCalculator {
         }
 
         // Dasha is always rooted at the NATAL Moon.
+        val natalEffTz = if (natalData.timeInGmt) 0.0 else natalData.tzOffset
         val natalJd = Ephemeris.julianDay(
             natalData.year, natalData.month, natalData.day,
-            natalData.hour + natalData.minute / 60.0 - natalData.tzOffset
+            natalData.hour + natalData.minute / 60.0 - natalEffTz
         )
         // Natal Moon (sidereal Lahiri) roots the Vimshottari sequence.
         val (natalMoon, _) = Ephemeris.planetPosition(natalJd, "Moon", useTrueRahu)

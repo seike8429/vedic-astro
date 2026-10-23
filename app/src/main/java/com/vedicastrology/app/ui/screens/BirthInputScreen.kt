@@ -20,6 +20,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -55,6 +56,7 @@ fun BirthInputScreen(
     var hour by remember { mutableStateOf(initial.hour) }
     var minute by remember { mutableStateOf(initial.minute) }
     var tz by remember { mutableStateOf(initial.tzOffset) }
+    var timeInGmt by remember { mutableStateOf(initial.timeInGmt) }
     var cityIdx by remember { mutableStateOf(0) }
     var customPlace by remember { mutableStateOf(false) }
     var latText by remember { mutableStateOf(CITY_PRESETS[0].lat.toString()) }
@@ -84,12 +86,24 @@ fun BirthInputScreen(
             }
         }
 
-        // Timezone dropdown.
-        ExposedDropdownMenuBox(expanded = tzExpanded, onExpandedChange = { tzExpanded = it }) {
+        // GMT toggle: when ON, the entered time is used as GMT directly
+        // (no timezone conversion) — works for any location.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            Text("အချိန် GMT နဲ့ထည့်")
+            Switch(checked = timeInGmt, onCheckedChange = { timeInGmt = it })
+        }
+
+        // Timezone dropdown (disabled in GMT mode).
+        ExposedDropdownMenuBox(expanded = tzExpanded, onExpandedChange = { if (!timeInGmt) tzExpanded = it }) {
             OutlinedTextField(
-                value = "UTC%+.1f".format(tz),
+                value = if (timeInGmt) "GMT (no conversion)" else "UTC%+.1f".format(tz),
                 onValueChange = {},
                 readOnly = true,
+                enabled = !timeInGmt,
                 label = { Text("Timezone") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(tzExpanded) },
                 modifier = Modifier.menuAnchor().fillMaxWidth()
@@ -158,7 +172,7 @@ fun BirthInputScreen(
                 val lat = latText.toDoubleOrNull() ?: 0.0
                 val lon = lonText.toDoubleOrNull() ?: 0.0
                 val place = if (customPlace) "Custom" else CITY_PRESETS[cityIdx].name
-                onCompute(BirthData(year, month, day, hour, minute, tz, lat, lon, place))
+                onCompute(BirthData(year, month, day, hour, minute, tz, lat, lon, place, timeInGmt))
             },
             enabled = !isComputing,
             modifier = Modifier.fillMaxWidth()
