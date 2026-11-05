@@ -61,7 +61,7 @@ import kotlin.math.sin
 
 /**
  * Rahu Kalam tab — Sayadaw (သယောဒယ) wheel, from the book
- * မြန်မာ့ရိုးရာ သရေခေတ္တရာဟုကာလ (Vol. 2). One wheel style, the book
+ * မြန်မာ့ရိုးရာ သယောဒယ ရာဟုကာလ (Vol. 2). One wheel style, the book
  * cover itself, 100% identical — bright-yellow outer ring of 28
  * nakshatras, pink Dasagga group ring, blue group segments, yellow
  * diamond divided into the 6 Sayagyi parts, red centre dot. Rotated so
@@ -184,7 +184,7 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
         item {
             Text("သယောဒယ ရာဟုကာလနစက်", style = MaterialTheme.typography.titleLarge)
             Text(
-                "သယောဒယ ရာဟုကာလနစက် — မြန်မာ့ရိုးရာ သရေခေတ္တရာဟုကာလ စာအုပ်နည်းအတိုင်း။ " +
+                "မြန်မာ့ရိုးရာ သယောဒယ ရာဟုကာလ စာအုပ်နည်းအတိုင်း။ " +
                     "ရာဟု စီးတဲ့ နက္ခတ်က ခံတွင်း၊ ကျန်အပိုင်းတွေ အစဉ်အတိုင်း။ " +
                     "ရာဟု နက္ခတ် ပြောင်းရင် ခံတွင်း ရွေ့ပြီး အပိုင်းအားလုံး လိုက်ရွေ့တယ် — " +
                     "ဇာတာ စက်ဝိုင်း (ဇာတာ ရာဟု) နဲ့ လက်ရှိ စက်ဝိုင်း (လက်ရှိ ရာဟု) ခွဲပြထားသည်။ " +
@@ -555,7 +555,7 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
 
 /**
  * Circular wheel, EXACTLY like the book cover
- * (မြန်မာ့ရိုးရာ သရေခေတ္တရာဟုကာလ, Vol. 2, cover), outside -> in:
+ * (မြန်မာ့ရိုးရာ သယောဒယ ရာဟုကာလ, Vol. 2, cover), outside -> in:
  * outermost white pada ring (108 pada syllables, သရ — e.g. Magha
  * မ မိ မု မေ), bright-yellow ring of 28 nakshatra NAMES (replacing
  * the numerals, v1.8.30 at the author's order),

@@ -2,7 +2,7 @@ package com.vedicastrology.app.engine
 
 /**
  * Burmese Rahu Kalam — Sayagyi (ဆရာကြီး) wheel, from the book
- * မြန်မာ့ရိုးရာ သရေခေတ္တရာဟုကာလ (Vol. 2).
+ * မြန်မာ့ရိုးရာ သယောဒယ ရာဟုကာလ (Vol. 2).
  *
  * Pure Kotlin, no Android imports, so the logic stays testable like
  * TransitEffectLogic. Nothing here is the Indian standard Rahu Kalam
