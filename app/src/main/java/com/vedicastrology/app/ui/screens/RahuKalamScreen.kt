@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.vedicastrology.app.engine.BirthData
 import com.vedicastrology.app.engine.ChartResult
 import com.vedicastrology.app.engine.Ephemeris
 import com.vedicastrology.app.engine.RahuKalam
@@ -55,7 +56,9 @@ import kotlin.math.sin
  * author showed (ZarTarPro "Rahukalana 2026"): outer ring = 28
  * nakshatras (name + number), middle ring = the 6 body parts
  * (coloured), markers for the natal planets and for the current Moon
- * (day 1 / day 2), centre = head nakshatra + chart + date. Detail
+ * (day 1 / day 2), centre = head nakshatra + chart + BIRTH date
+ * (ZarTarPro shows the birth date in the centre — the wheel is natal,
+ * so today's date belongs in the summary, not the centre). Detail
  * table below. Our rendering is our own.
  */
 
@@ -79,7 +82,7 @@ private val PLANET_LABELS = mapOf(
 )
 
 @Composable
-fun RahuKalamScreen(natal: ChartResult, chartName: String, useTrueRahu: Boolean) {
+fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, useTrueRahu: Boolean) {
     var refreshKey by remember { mutableIntStateOf(0) }
     var reading by remember { mutableStateOf<Reading?>(null) }
     var loadError by remember { mutableStateOf<String?>(null) }
@@ -157,7 +160,11 @@ fun RahuKalamScreen(natal: ChartResult, chartName: String, useTrueRahu: Boolean)
                 moon1N28 = moon1N28,
                 moon2N28 = moon2N28,
                 chartName = chartName,
-                dateLabel = mmtFmt.format(Date(r.day1Millis)),
+                // Centre shows the BIRTH date (ZarTarPro does the same);
+                // today/tomorrow live in the summary card below.
+                dateLabel = String.format(
+                    Locale.US, "%02d/%02d/%04d", birth.day, birth.month, birth.year
+                ),
                 modifier = Modifier.fillMaxWidth(0.96f).aspectRatio(1f)
             )
             Spacer(Modifier.height(12.dp))

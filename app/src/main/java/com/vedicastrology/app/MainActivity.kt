@@ -221,11 +221,13 @@ private fun AppContent(vm: ChartViewModel) {
         }
         is Screen.RahuKalam -> {
             val chart = vm.chart
-            if (chart == null) {
+            val birth = vm.birthData
+            if (chart == null || birth == null) {
                 LoadingOrError(vm)
             } else {
                 RahuKalamScreen(
                     natal = chart,
+                    birth = birth,
                     chartName = vm.savedCharts.firstOrNull { it.id == vm.currentChartId }?.name ?: "",
                     useTrueRahu = vm.useTrueRahu
                 )
