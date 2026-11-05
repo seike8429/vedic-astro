@@ -38,6 +38,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
@@ -283,80 +285,108 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                         .pointerInput(boxSize) {
                             awaitEachGesture {
                                 awaitFirstDown(requireUnconsumed = false)
+                                // Own per-pointer tracking: previousPosition
+                                // is unreliable for a just-down pointer, so
+                                // seed each new pointer to its down position.
+                                // Zoom is anchored to the pinch START
+                                // (distance + scale when the 2nd finger
+                                // lands), not to incremental moves — so a
+                                // quick pinch zooms, and pinch-out cannot
+                                // stall. Events are read in the Initial pass
+                                // so the page scroll cannot swallow them.
+                                val lastPos = mutableMapOf<PointerId, Offset>()
+                                var prevCentroid = Offset.Zero
+                                var havePrevCentroid = false
+                                var pinching = false
+                                var pinchStartDist = 0f
+                                var pinchStartScale = 1f
+                                var pinchCentroid = Offset.Zero
                                 while (true) {
-                                    val event = awaitPointerEvent()
-                                    val pressed = event.changes
-                                        .filter { it.pressed }
-                                    if (pressed.isEmpty()) break
-                                    val positions = pressed.associate {
-                                        it.id to it.position
+                                    val event = awaitPointerEvent(
+                                        PointerEventPass.Initial
+                                    )
+                                    val beforeCount = lastPos.size
+                                    for (change in event.changes) {
+                                        if (change.pressed) {
+                                            lastPos[change.id] =
+                                                change.position
+                                        } else {
+                                            lastPos.remove(change.id)
+                                        }
                                     }
-                                    val prevPositions = pressed.associate {
-                                        it.id to it.previousPosition
-                                    }
-                                    val centroid = positions.values
+                                    if (lastPos.isEmpty()) break
+                                    val positions = lastPos.values.toList()
+                                    val centroid = positions
                                         .reduce { a, b -> a + b } /
                                         positions.size.toFloat()
-                                    val prevCentroid = prevPositions.values
-                                        .reduce { a, b -> a + b } /
-                                        prevPositions.size.toFloat()
-                                    val avgDist = positions.values
-                                        .map { (it - centroid).getDistance() }
-                                        .average().toFloat()
-                                    val prevAvgDist = prevPositions.values
-                                        .map { (it - prevCentroid).getDistance() }
-                                        .average().toFloat()
-                                    if (positions.size >= 2 &&
-                                        prevAvgDist > 0f && avgDist > 0f
-                                    ) {
-                                        // Two fingers: pinch-zoom around
-                                        // the centroid, so the point under
-                                        // the fingers stays put (no jump).
-                                        // Zoom is computed from each
-                                        // pointer's previousPosition, so
-                                        // even a quick pinch (down + move
-                                        // in one event) zooms — the old
-                                        // baseline version skipped that
-                                        // first move, which is why only
-                                        // pinch-in worked.
-                                        val zoomChange = avgDist / prevAvgDist
-                                        val panChange = centroid - prevCentroid
-                                        val newScale = (wheelScale * zoomChange)
-                                            .coerceIn(1f, 4f)
-                                        val factor = newScale / wheelScale
-                                        val center = Offset(
-                                            boxSize.width / 2f,
-                                            boxSize.height / 2f
-                                        )
-                                        wheelOffset = wheelOffset * factor +
-                                            (centroid - center) * (1f - factor) +
-                                            panChange
-                                        wheelScale = newScale
-                                        // Snap back to 1x when pinched
-                                        // almost all the way out, so the
-                                        // wheel reliably returns to centre.
-                                        if (wheelScale <= 1.15f) {
-                                            wheelScale = 1f
-                                            wheelOffset = Offset.Zero
-                                        } else {
-                                            wheelOffset = clampWheelOffset(
-                                                wheelOffset, wheelScale, boxSize
+                                    // A finger landing or lifting moves the
+                                    // centroid: reset the pan baseline so
+                                    // that jump cannot pan or zoom the wheel.
+                                    if (lastPos.size != beforeCount) {
+                                        havePrevCentroid = false
+                                        if (lastPos.size < 2) pinching = false
+                                    }
+                                    if (lastPos.size >= 2) {
+                                        val avgDist = positions
+                                            .map {
+                                                (it - centroid).getDistance()
+                                            }
+                                            .average().toFloat()
+                                        if (!pinching) {
+                                            // Pinch just started: anchor.
+                                            pinching = true
+                                            pinchStartDist = avgDist
+                                            pinchStartScale = wheelScale
+                                            pinchCentroid = centroid
+                                        } else if (pinchStartDist > 0f &&
+                                            avgDist > 0f
+                                        ) {
+                                            val newScale = (pinchStartScale *
+                                                avgDist / pinchStartDist)
+                                                .coerceIn(1f, 4f)
+                                            val factor = newScale / wheelScale
+                                            val center = Offset(
+                                                boxSize.width / 2f,
+                                                boxSize.height / 2f
                                             )
+                                            wheelOffset = wheelOffset * factor +
+                                                (centroid - center) *
+                                                (1f - factor) +
+                                                (centroid - pinchCentroid)
+                                            wheelScale = newScale
+                                            pinchCentroid = centroid
+                                            if (wheelScale <= 1.15f) {
+                                                wheelScale = 1f
+                                                wheelOffset = Offset.Zero
+                                            } else {
+                                                wheelOffset = clampWheelOffset(
+                                                    wheelOffset, wheelScale,
+                                                    boxSize
+                                                )
+                                            }
                                         }
                                         event.changes.forEach { it.consume() }
-                                    } else if (positions.size == 1 &&
+                                    } else if (lastPos.size == 1 &&
                                         wheelScale > 1f
                                     ) {
-                                        // One finger while zoomed: pan.
-                                        wheelOffset = clampWheelOffset(
-                                            wheelOffset +
-                                                (centroid - prevCentroid),
-                                            wheelScale, boxSize
-                                        )
-                                        event.changes.forEach { it.consume() }
+                                        // One finger while zoomed: pan, but
+                                        // only with a baseline, so a finger
+                                        // lifting mid-pinch cannot jump it.
+                                        if (havePrevCentroid) {
+                                            wheelOffset = clampWheelOffset(
+                                                wheelOffset +
+                                                    (centroid - prevCentroid),
+                                                wheelScale, boxSize
+                                            )
+                                            event.changes.forEach {
+                                                it.consume()
+                                            }
+                                        }
                                     }
                                     // One finger at 1x: not consumed, so
                                     // the page scrolls as normal.
+                                    prevCentroid = centroid
+                                    havePrevCentroid = true
                                 }
                             }
                         }
