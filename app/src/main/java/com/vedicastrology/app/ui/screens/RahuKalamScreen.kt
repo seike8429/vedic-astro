@@ -1018,8 +1018,7 @@ private fun RahuKalamWheel(
                 )
             }
             val moon2Pos = Offset(
-                px(markerR, markerAngle(r.moon2Lon)),
-                py(markerR, markerAngle(r.moon2Lon))
+                px(markerR, cellAngle(moon2N28)), py(markerR, cellAngle(moon2N28))
             )
             drawCircle(
                 color = Color(0xFF2E7D32), radius = size.minDimension * 0.019f,
