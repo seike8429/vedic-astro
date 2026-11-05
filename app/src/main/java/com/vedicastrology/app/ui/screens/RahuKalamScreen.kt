@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,10 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.input.pointer.awaitPointerEvent
-import androidx.compose.ui.input.pointer.consume
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -127,7 +125,6 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
     // off-screen or stick slightly zoomed and shifted.
     var wheelScale by remember { mutableFloatStateOf(1f) }
     var wheelOffset by remember { mutableStateOf(Offset.Zero) }
-    var wheelSize by remember { mutableStateOf(IntSize.Zero) }
     // Clamp the pan offset so the zoomed wheel always covers the box
     // (no empty space, and the wheel can always be pinched back).
     fun clampWheelOffset(offset: Offset, scale: Float, size: IntSize): Offset {
@@ -274,12 +271,15 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
             // The displayed planet set follows the mode (one set at a time).
             // Pinch to zoom (centroid stays fixed), drag to pan while
             // zoomed in; a one-finger drag at 1x still scrolls the page.
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .onSizeChanged { wheelSize = it }
-                    .pointerInput(Unit) {
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxWidth().aspectRatio(1f)
+            ) {
+                // Box size (px) for the zoom math: pinch centre + clamping.
+                val boxSize = IntSize(constraints.maxWidth, constraints.maxHeight)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(boxSize) {
                         awaitEachGesture {
                             awaitFirstDown(requireUnconsumed = false)
                             var prevCentroid = Offset.Zero
@@ -311,8 +311,8 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                                         .coerceIn(1f, 4f)
                                     val factor = newScale / wheelScale
                                     val center = Offset(
-                                        wheelSize.width / 2f,
-                                        wheelSize.height / 2f
+                                        boxSize.width / 2f,
+                                        boxSize.height / 2f
                                     )
                                     wheelOffset = wheelOffset * factor +
                                         (centroid - center) * (1f - factor) +
@@ -326,7 +326,7 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                                         wheelOffset = Offset.Zero
                                     } else {
                                         wheelOffset = clampWheelOffset(
-                                            wheelOffset, wheelScale, wheelSize
+                                            wheelOffset, wheelScale, boxSize
                                         )
                                     }
                                     event.changes.forEach { it.consume() }
@@ -334,7 +334,7 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                                     // One finger while zoomed: pan the wheel.
                                     wheelOffset = clampWheelOffset(
                                         wheelOffset + (centroid - prevCentroid),
-                                        wheelScale, wheelSize
+                                        wheelScale, boxSize
                                     )
                                     event.changes.forEach { it.consume() }
                                 }
@@ -361,6 +361,7 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                     moon2N28 = moon2N28,
                     modifier = Modifier.fillMaxWidth().aspectRatio(1f)
                 )
+                }
             }
             Spacer(Modifier.height(12.dp))
         }
