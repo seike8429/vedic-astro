@@ -9,29 +9,34 @@ package com.vedicastrology.app.engine
  * (fixed weekday time slots): the Burmese wheel is built from the
  * nakshatra Rahu occupies in the NATAL chart.
  *
- * Method (book + author's correction 2026-11-05):
+ * Method (book + author's corrections 2026-11-05):
  *  - 28 nakshatras, Ashwini = 1. Abhijit (22, shown as X in the book's
  *    tables) sits between Uttara Ashadha (21) and Shravana (23):
  *    Uttara Ashadha spans 266°40'–276°40' (10°), Abhijit 276°40'–280°00'
  *    (3°20'), every other nakshatra 13°20'.
- *  - The wheel is built from the NATAL chart: the HEAD (ဦးခေါင်း) starts
- *    at the nakshatra Rahu occupies natally, and the rest follow in
- *    order (clockwise): head 7, mouth (ခံတွင်း) 1, chest (ရင်) 7,
- *    belly (ဝမ်း) 6, anus (စအို) 1, hips (အပြီး) 6 = 28.
- *    (Earlier v1.8.15 wrongly used the transiting Rahu and labelled the
- *    last part "legs" (ခြေထောက်) — the author's word corrects both: the
- *    wheel is natal, and Rahu's nakshatra is the head.)
- *  - Tail (ကေတုအမြှီး) = the anus part (စအို), per the author's word.
+ *  - The wheel is anchored at the MOUTH (ဇီဝ): the mouth IS the
+ *    nakshatra Rahu occupies, and the anus (ဂူဒ) IS the nakshatra Ketu
+ *    occupies — the author's rule ("ကေတုရှိတဲ့နေရာက ဂူဒ၊
+ *    ရာဟုရှိတဲ့နေရာက ဇီဝ"). From the mouth the parts follow in order
+ *    (clockwise): mouth (ခံတွင်း) 1, chest (ရင်) 7, belly (ဝမ်း) 6,
+ *    anus (စအို) 1, tail (အမြှီး) 6, head (ဦးခေါင်း) 7 = 28.
+ *    The wheel is built from the NATAL chart and from the CURRENT
+ *    (transit) chart alike — each has its own Rahu, hence its own
+ *    mouth and anus. (Earlier versions wrongly anchored the wheel at
+ *    the head with the mouth at offset 7 — the author's word corrects
+ *    this: Rahu's nakshatra IS the mouth.)
  *  - The daily reading uses the CURRENT Moon: day 1 = today, day 2 =
  *    tomorrow. General day-2 rule (book, Sayagyi): when the Moon
  *    (day 2) is in a chest / belly / anus nakshatra, work succeeds and
- *    marriage is favourable; in a hips / head / mouth nakshatra, work
+ *    marriage is favourable; in a tail / head / mouth nakshatra, work
  *    meets obstacles and marriage does not hold.
  *
  * Verified against the author's own chart (Rahu natal = Swati, 15):
- * head 15–21, mouth 22 (Abhijit), chest 23–28, 1, belly 2–7,
- * anus 8 (Pushya), hips 9–14. His natal Moon (Shravana, 23) falls in
- * the chest; his Nama nakshatra (Magha, 10) falls in the hips.
+ * mouth 15 (Swati, ဇီဝ), chest 16–22, belly 23–28, anus 1 (Ashwini,
+ * ဂူဒ — Ketu is in Bharani 2, one off by the Abhijit shift, see note
+ * in sayagyiWheel), tail 2–7, head 8–14. His natal Moon (Shravana,
+ * 23) falls in the belly; his Nama nakshatra (Magha, 10) falls in
+ * the head.
  */
 object RahuKalam {
 
@@ -40,26 +45,28 @@ object RahuKalam {
 
     /**
      * The six body parts of the Sayagyi wheel, in cycle order starting
-     * at the mouth. The construction starts at the HEAD (Rahu's natal
-     * nakshatra) and runs head -> mouth -> chest -> belly -> anus ->
-     * hips -> head. The mouth (offset 7) and the anus (offset 21) are
-     * exactly 14 nakshatras = 180° apart — the author's rule
-     * 2026-11-05 (the anus/Guda sits exactly 180° from the mouth).
+     * at the mouth. The wheel is anchored at the MOUTH: the mouth
+     * (ဇီဝ) IS the nakshatra Rahu occupies, and the anus (ဂူဒ) IS the
+     * nakshatra Ketu occupies — the author's rule 2026-11-05
+     * ("ကေတုရှိတဲ့နေရာက ဂူဒ၊ ရာဟုရှိတဲ့နေရာက ဇီဝ"). Rahu and Ketu
+     * are always 180° apart, so the mouth and the anus sit exactly
+     * 180° apart. From the mouth the parts run mouth -> chest ->
+     * belly -> anus -> tail -> head -> mouth.
      */
     enum class WheelPart(val mm: String, val count: Int) {
         MOUTH("ခံတွင်း", 1),
         CHEST("ရင်", 7),
         BELLY("ဝမ်း", 6),
         ANUS("စအို", 1),
-        HIPS("အပြီး", 6),
+        TAIL("အမြှီး", 6),
         HEAD("ဦးခေါင်း", 7)
     }
 
     /** One part of a built wheel: the part plus its nakshatra numbers (1-28). */
     data class WheelPartEntry(val part: WheelPart, val numbers: List<Int>)
 
-    /** A built Sayagyi wheel: Rahu's natal nakshatra (1-28) starts the head. */
-    data class SayagyiWheel(val headStart28: Int, val parts: List<WheelPartEntry>) {
+    /** A built Sayagyi wheel: Rahu's nakshatra (1-28) is the mouth (ဇီဝ). */
+    data class SayagyiWheel(val mouthStart28: Int, val parts: List<WheelPartEntry>) {
         /** Which part contains 28-nakshatra number [n28] (1-28). */
         fun partOf(n28: Int): WheelPart =
             parts.first { n28 in it.numbers }.part
@@ -93,26 +100,28 @@ object RahuKalam {
     }
 
     /**
-     * Build the Sayagyi wheel from Rahu's NATAL sidereal longitude.
-     * The head starts at Rahu's nakshatra; the rest follow in order.
+     * Build the Sayagyi wheel from Rahu's sidereal longitude.
+     * The MOUTH (ဇီဝ) is the nakshatra Rahu occupies; the ANUS (ဂူဒ)
+     * is the nakshatra Ketu occupies, 14 nakshatras = 180° away.
+     * The rest follow in order from the mouth.
      */
     fun sayagyiWheel(natalRahuLon: Double): SayagyiWheel {
-        val headStart = nakshatra28(natalRahuLon)
-        // Offset of each part's first nakshatra from the head start.
+        val mouthStart = nakshatra28(natalRahuLon)
+        // Offset of each part's first nakshatra from the mouth start.
         val offsets = mapOf(
-            WheelPart.HEAD to 0,
-            WheelPart.MOUTH to 7,
-            WheelPart.CHEST to 8,
-            WheelPart.BELLY to 15,
-            WheelPart.ANUS to 21,
-            WheelPart.HIPS to 22
+            WheelPart.MOUTH to 0,
+            WheelPart.CHEST to 1,
+            WheelPart.BELLY to 8,
+            WheelPart.ANUS to 14,
+            WheelPart.TAIL to 15,
+            WheelPart.HEAD to 21
         )
         val parts = WheelPart.entries.map { part ->
-            val start = wrap28(headStart + (offsets[part] ?: 0))
+            val start = wrap28(mouthStart + (offsets[part] ?: 0))
             val numbers = (0 until part.count).map { step -> wrap28(start + step) }
             WheelPartEntry(part, numbers)
         }
-        return SayagyiWheel(headStart, parts)
+        return SayagyiWheel(mouthStart, parts)
     }
 
     private fun wrap28(n: Int): Int = ((n - 1) % 28 + 28) % 28 + 1
@@ -120,13 +129,13 @@ object RahuKalam {
     /**
      * The ten Dasagga (ဒသဂ္ဂ) groups. They are NOT fixed nakshatras —
      * they are subdivisions of the Sayagyi parts, defined by offsets
-     * from the HEAD (Rahu's nakshatra), so they shift with the wheel
+     * from the MOUTH (Rahu's nakshatra), so they shift with the wheel
      * and always coincide with the parts (the author's rule 2026-11-05,
-     * ထပ်တူကျ): the mouth (offset 7) IS the ဇီဝ group (one nakshatra),
-     * the anus (offset 21) IS the ဂူဒ group (one nakshatra), and the
+     * ထပ်တူကျ): the mouth (offset 0) IS the ဇီဝ group (one nakshatra),
+     * the anus (offset 14) IS the ဂူဒ group (one nakshatra), and the
      * mouth and anus sit exactly 180° apart. The book's group table
      * (his photo, upload 185) shows these groups for the reference
-     * head = Krittika (3): 11-13 ပုပ္ဖိတ, 14-17 ဖလိတ, 18-20 နိဖ္ဖလ,
+     * Rahu = Magha (10): 11-13 ပုပ္ဖိတ, 14-17 ဖလိတ, 18-20 နိဖ္ဖလ,
      * 21,X,22 ဇဋိတ, 23 ဂူဒ, 24-26 ရာဇဿ, 27,1,2 ထမဿ, 3-6 ဝုဒ္ဓ,
      * 7-9 မတ, 10 ဇီဝ (the book writes Abhijit as X between 21 and 22,
      * so its 22, 23, 24, 25, 26, 27 are our 23, 24, 25, 26, 27, 28).
@@ -134,31 +143,32 @@ object RahuKalam {
      * earlier session; the table is the authority. Spellings corrected
      * by the author 2026-11-05 (ပူဖိတ→ပုပ္ဖိတ, နိဖလ→နိဖ္ဖလ,
      * ဇ္ဇိုတ→ဇဋိတ, ရာဇေ→ရာဇဿ, ထာမသ→ထမဿ, ပူ→ဝုဒ္ဓ).
-     * Terminology (author): ဇီဝ = the mouth (ခံတွင်း), ဂူဒ = the anus
-     * (စအို, the tail) — same thing, different words.
-     * Part -> groups: HEAD = ဝုဒ္ဓ + မတ; MOUTH = ဇီဝ; CHEST = ပူဖိတ +
-     * ဖလိတ; BELLY = နိဖလ + ဇဋိတ; ANUS = ဂူဒ; HIPS = ရာဇဿ + ထမဿ.
+     * Terminology (author): ဇီဝ = the mouth (ခံတွင်း) = Rahu's
+     * nakshatra; ဂူဒ = the anus (စအို) = Ketu's nakshatra.
+     * Part -> groups: MOUTH = ဇီဝ; CHEST = ပူဖိတ + ဖလိတ;
+     * BELLY = နိဖလ + ဇဋိတ; ANUS = ဂူဒ; TAIL = ရာဇဿ + ထမဿ;
+     * HEAD = ဝုဒ္ဓ + မတ.
      */
     data class DasaggaGroup(val mm: String, val numbers: List<Int>)
 
-    /** Dasagga group offsets from the head (Rahu's nakshatra). */
+    /** Dasagga group offsets from the mouth (Rahu's nakshatra). */
     private val DASAGGA_GROUP_OFFSETS = listOf(
-        "ဝုဒ္ဓ" to (0..3),
-        "မတ" to (4..6),
-        "ဇီဝ" to (7..7),
-        "ပုပ္ဖိတ" to (8..10),
-        "ဖလိတ" to (11..14),
-        "နိဖ္ဖလ" to (15..17),
-        "ဇဋိတ" to (18..20),
-        "ဂူဒ" to (21..21),
-        "ရာဇဿ" to (22..24),
-        "ထမဿ" to (25..27)
+        "ဇီဝ" to (0..0),
+        "ပုပ္ဖိတ" to (1..3),
+        "ဖလိတ" to (4..7),
+        "နိဖ္ဖလ" to (8..10),
+        "ဇဋိတ" to (11..13),
+        "ဂူဒ" to (14..14),
+        "ရာဇဿ" to (15..17),
+        "ထမဿ" to (18..20),
+        "ဝုဒ္ဓ" to (21..24),
+        "မတ" to (25..27)
     )
 
-    /** The ten Dasagga groups for a wheel whose head starts at [headStart28]. */
-    fun dasaggaGroups(headStart28: Int): List<DasaggaGroup> =
+    /** The ten Dasagga groups for a wheel whose mouth starts at [mouthStart28]. */
+    fun dasaggaGroups(mouthStart28: Int): List<DasaggaGroup> =
         DASAGGA_GROUP_OFFSETS.map { (name, range) ->
-            DasaggaGroup(name, range.map { wrap28(headStart28 + it) })
+            DasaggaGroup(name, range.map { wrap28(mouthStart28 + it) })
         }
 
     /**
@@ -224,7 +234,7 @@ object RahuKalam {
         return if (list.size == 1) list[0] else list[pada - 1]
     }
 
-    /** Burmese numeral for a number 1-28 (ZarTarPro writes numerals this way). */
+    /** Burmese numeral for a number 1-28. */
     fun burmeseNum(n: Int): String {
         val digits = "၀၁၂၃၄၅၆၇၈၉"
         return n.toString().map { digits[it - '0'] }.joinToString("")
@@ -238,7 +248,7 @@ object RahuKalam {
 
     fun day2Verdict(part: WheelPart): Verdict = when (part) {
         WheelPart.CHEST, WheelPart.BELLY, WheelPart.ANUS -> Verdict.GOOD
-        WheelPart.HIPS, WheelPart.HEAD, WheelPart.MOUTH -> Verdict.OBSTACLE
+        WheelPart.TAIL, WheelPart.HEAD, WheelPart.MOUTH -> Verdict.OBSTACLE
     }
 
     /** Julian Day (UT) for a Unix epoch-millis instant. */

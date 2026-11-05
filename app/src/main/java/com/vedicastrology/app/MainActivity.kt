@@ -94,7 +94,7 @@ private fun AppContent(vm: ChartViewModel) {
             Row(Modifier.fillMaxWidth()) {
                 TabItem("ယောဂ", vm.screen is Screen.Yoga, Modifier.weight(1f)) { vm.goTo(Screen.Yoga) }
                 TabItem("Transit effect", vm.screen is Screen.TransitEffect, Modifier.weight(1f)) { vm.goTo(Screen.TransitEffect) }
-                TabItem("ရာဟုကာလ", vm.screen is Screen.RahuKalam, Modifier.weight(1f)) { vm.goTo(Screen.RahuKalam) }
+                TabItem("ရာဟုကာလနစက်", vm.screen is Screen.RahuKalam, Modifier.weight(1f)) { vm.goTo(Screen.RahuKalam) }
             }
             HorizontalDivider()
         }
