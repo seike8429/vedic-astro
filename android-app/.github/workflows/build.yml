@@ -30,6 +30,7 @@ jobs:
     - name: Verify SwissEph JAR is vendored
       run: |
         ls -lh app/libs/swisseph-2.01.00.jar
+        # No download needed: the Thomas Mack Java port JAR is committed in app/libs.
 
     - name: Build Debug APK
       run: |
