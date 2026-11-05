@@ -100,10 +100,6 @@ private val PLANET_COLORS = mapOf(
     "Ketu" to Color(0xFF6D4C41)
 )
 
-)
-
-)
-
 @Composable
 fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, useTrueRahu: Boolean) {
     var refreshKey by remember { mutableIntStateOf(0) }
