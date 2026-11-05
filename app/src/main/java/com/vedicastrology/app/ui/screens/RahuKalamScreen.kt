@@ -647,9 +647,8 @@ private fun TableRow(label: String, value: String, boldValue: Boolean = false) {
 /**
  * Circular wheel, EXACTLY like the book cover
  * (မြန်မာ့ရိုးရာ သရေခေတ္တရာဟုကာလ, Vol. 2, cover), outside -> in:
- * outermost white pada ring (clean — no syllable text on the wheel
- * since v1.8.39 at the author's order; the သရ stay in the planets
- * table below), bright-yellow ring of 28 nakshatra NAMES (replacing
+ * outermost white pada ring (108 pada syllables, သရ — e.g. Magha
+ * မ မိ မု မေ), bright-yellow ring of 28 nakshatra NAMES (replacing
  * the numerals, v1.8.30 at the author's order),
  * mauve-pink Dasagga group ring (10 groups, names along the arc),
  * blue Dasagga group segments (one per group, names along the arc),
@@ -658,8 +657,10 @@ private fun TableRow(label: String, value: String, boldValue: Boolean = false) {
  * bottom, head left, chest top-right, belly bottom-right, tail
  * bottom-left), and a red centre dot. (The cover's pink မော / ဇီဝ
  * vertex boxes were removed in v1.8.29 at the author's order — they
- * are wrong.) Planet markers (natal filled, now hollow, no syllable
- * text beside them since v1.8.39) sit in the nakshatra-name ring.
+ * are wrong.) No planet markers on the wheel since v1.8.40 at the
+ * author's order — the wheel shows nakshatra names + pada syllables
+ * + the 6 parts only; planet positions stay in the table below.
+ * Only the day-1 (blue) / day-2 (green) Moon rings mark the Moon.
  * The wheel is ROTATED so the mouth's nakshatra is centred at the
  * top — exactly as the cover shows it (mouth top, head left) — for
  * any natal chart. Angles are clockwise from the top.
@@ -762,8 +763,11 @@ private fun RahuKalamWheel(
                     end = Offset(px(padaR + padaW / 2f, pStart), py(padaR + padaW / 2f, pStart)),
                     strokeWidth = 1.5f
                 )
-                // No syllable text on the wheel — clean ring only; the သရ
-                // for each planet stays in the planets table below.
+                val mid = norm360(pStart + pSweep / 2.0)
+                drawArcLabel(
+                    RahuKalam.PADA_SYLLABLES[n - 1][p], mid, padaR,
+                    size.minDimension * 0.013f, cx, cy, bold = false
+                )
             }
         }
         // Outer + inner boundary circles of the pada ring.
@@ -944,51 +948,11 @@ private fun RahuKalamWheel(
             style = Stroke(width = 2f)
         )
 
-        // ---- Planet markers in the outer nakshatra ring ----
-        // One set only (no overlap): natal (filled) or now (hollow).
-        val displayPlanets = if (showTransit) transitPlanets else natalPlanets
+        // ---- No planet markers on the wheel (author's order, v1.8.40) ----
+        // The wheel shows nakshatra names + pada syllables (သရ) + the 6
+        // parts only; planet positions stay in the planets table below.
+        // markerR is kept for the day-1 / day-2 Moon rings below.
         val markerR = R * 0.885f
-        displayPlanets.forEach { (name, lon) ->
-            val ang = markerAngle(lon)
-            val pos = Offset(px(markerR, ang), py(markerR, ang))
-            val color = PLANET_COLORS[name] ?: Color.Gray
-            val radius = size.minDimension * 0.012f
-            if (!showTransit) {
-                drawCircle(color = color, radius = radius, center = pos)
-                drawCircle(
-                    color = Color.White, radius = radius, center = pos,
-                    style = Stroke(width = 2f)
-                )
-            } else {
-                drawCircle(color = Color.White, radius = radius, center = pos)
-                drawCircle(
-                    color = color, radius = radius, center = pos,
-                    style = Stroke(width = 2.5f)
-                )
-            }
-            drawContext.canvas.nativeCanvas.apply {
-                val glyphPaint = android.graphics.Paint().apply {
-                    this.color = if (!showTransit) {
-                        android.graphics.Color.WHITE
-                    } else {
-                        android.graphics.Color.rgb(
-                            (color.red * 255).toInt(),
-                            (color.green * 255).toInt(),
-                            (color.blue * 255).toInt()
-                        )
-                    }
-                    textSize = size.minDimension * 0.020f
-                    textAlign = android.graphics.Paint.Align.CENTER
-                    isFakeBoldText = true
-                }
-                drawText(
-                    PLANET_GLYPHS[name] ?: "?", pos.x,
-                    pos.y + glyphPaint.textSize / 3f, glyphPaint
-                )
-                // No သရ text beside the marker — clean wheel; the syllable
-                // for each planet stays in the planets table below.
-            }
-        }
         // Current Moon day 1 (blue ring) / day 2 (green ring) — only in
         // လက်ရှိ mode, since day 1 / day 2 Moon is the current Moon.
         if (showTransit) {
