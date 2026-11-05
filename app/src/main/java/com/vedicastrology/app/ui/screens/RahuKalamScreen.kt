@@ -647,8 +647,9 @@ private fun TableRow(label: String, value: String, boldValue: Boolean = false) {
 /**
  * Circular wheel, EXACTLY like the book cover
  * (မြန်မာ့ရိုးရာ သရေခေတ္တရာဟုကာလ, Vol. 2, cover), outside -> in:
- * outermost white pada ring (108 pada syllables, သရ — e.g. Magha
- * မ မိ မု မေ), bright-yellow ring of 28 nakshatra NAMES (replacing
+ * outermost white pada ring (clean — no syllable text on the wheel
+ * since v1.8.39 at the author's order; the သရ stay in the planets
+ * table below), bright-yellow ring of 28 nakshatra NAMES (replacing
  * the numerals, v1.8.30 at the author's order),
  * mauve-pink Dasagga group ring (10 groups, names along the arc),
  * blue Dasagga group segments (one per group, names along the arc),
@@ -657,8 +658,8 @@ private fun TableRow(label: String, value: String, boldValue: Boolean = false) {
  * bottom, head left, chest top-right, belly bottom-right, tail
  * bottom-left), and a red centre dot. (The cover's pink မော / ဇီဝ
  * vertex boxes were removed in v1.8.29 at the author's order — they
- * are wrong.) Planet markers (natal filled, now hollow,
- * with their pada syllable သရ) sit in the nakshatra-name ring.
+ * are wrong.) Planet markers (natal filled, now hollow, no syllable
+ * text beside them since v1.8.39) sit in the nakshatra-name ring.
  * The wheel is ROTATED so the mouth's nakshatra is centred at the
  * top — exactly as the cover shows it (mouth top, head left) — for
  * any natal chart. Angles are clockwise from the top.
@@ -761,11 +762,8 @@ private fun RahuKalamWheel(
                     end = Offset(px(padaR + padaW / 2f, pStart), py(padaR + padaW / 2f, pStart)),
                     strokeWidth = 1.5f
                 )
-                val mid = norm360(pStart + pSweep / 2.0)
-                drawArcLabel(
-                    RahuKalam.PADA_SYLLABLES[n - 1][p], mid, padaR,
-                    size.minDimension * 0.013f, cx, cy, bold = false
-                )
+                // No syllable text on the wheel — clean ring only; the သရ
+                // for each planet stays in the planets table below.
             }
         }
         // Outer + inner boundary circles of the pada ring.
@@ -987,20 +985,8 @@ private fun RahuKalamWheel(
                     PLANET_GLYPHS[name] ?: "?", pos.x,
                     pos.y + glyphPaint.textSize / 3f, glyphPaint
                 )
-                // သရ, just clockwise of the marker (tangent direction).
-                val theta = Math.toRadians(ang)
-                val sx = pos.x + (R * 0.055f * cos(theta)).toFloat()
-                val sy = pos.y + (R * 0.055f * sin(theta)).toFloat()
-                val saraPaint = android.graphics.Paint().apply {
-                    this.color = android.graphics.Color.BLACK
-                    textSize = size.minDimension * 0.016f
-                    textAlign = android.graphics.Paint.Align.CENTER
-                    isFakeBoldText = true
-                }
-                drawText(
-                    RahuKalam.syllableOf(lon), sx,
-                    sy + saraPaint.textSize / 3f, saraPaint
-                )
+                // No သရ text beside the marker — clean wheel; the syllable
+                // for each planet stays in the planets table below.
             }
         }
         // Current Moon day 1 (blue ring) / day 2 (green ring) — only in
