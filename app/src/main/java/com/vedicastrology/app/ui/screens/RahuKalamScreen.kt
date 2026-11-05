@@ -438,11 +438,11 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                     Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
                         Text("အပိုင်း", Modifier.weight(0.9f), fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium)
-                        Text("နံပါတ်", Modifier.weight(1.6f), fontWeight = FontWeight.Bold,
+                        Text("နံပါတ်", Modifier.weight(1.2f), fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium)
-                        Text("လ ၁ နေ့", Modifier.weight(0.7f), fontWeight = FontWeight.Bold,
+                        Text("လ ၁ နေ့", Modifier.weight(0.9f), fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium)
-                        Text("လ ၂ လာ", Modifier.weight(0.7f), fontWeight = FontWeight.Bold,
+                        Text("လ ၂ လာ", Modifier.weight(0.9f), fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium)
                     }
                     HorizontalDivider()
@@ -460,18 +460,18 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                                 style = MaterialTheme.typography.bodyMedium)
                             Text(
                                 entry.numbers.joinToString(", ") { RahuKalam.displayNumLabel(it) },
-                                Modifier.weight(1.6f),
+                                Modifier.weight(1.2f),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Text(
                                 if (moon1N28 in entry.numbers) "●" else "",
-                                Modifier.weight(0.7f),
+                                Modifier.weight(0.9f),
                                 color = Color(0xFF1565C0),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Text(
                                 if (moon2N28 in entry.numbers) "●" else "",
-                                Modifier.weight(0.7f),
+                                Modifier.weight(0.9f),
                                 color = Color(0xFF2E7D32),
                                 style = MaterialTheme.typography.bodyMedium
                             )
@@ -606,9 +606,9 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
 @Composable
 private fun TableRow(label: String, value: String, boldValue: Boolean = false) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
-        Text(label, Modifier.weight(1f),
+        Text(label, Modifier.weight(1.3f),
             style = MaterialTheme.typography.bodyMedium)
-        Text(value, Modifier.weight(1.6f),
+        Text(value, Modifier.weight(1.3f),
             fontWeight = if (boldValue) FontWeight.Bold else null,
             style = MaterialTheme.typography.bodyMedium)
     }
