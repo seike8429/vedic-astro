@@ -118,6 +118,9 @@ private val PART_COLORS = mapOf(
 fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, useTrueRahu: Boolean) {
     var refreshKey by remember { mutableIntStateOf(0) }
     var reading by remember { mutableStateOf<Reading?>(null) }
+    // Wheel mode: false = ဇာတာ (natal, filled), true = လက်ရှိ (now, hollow).
+    // One set at a time — the author dislikes the two sets overlapping.
+    var showTransit by remember { mutableStateOf(false) }
     var loadError by remember { mutableStateOf<String?>(null) }
 
     val mmtFmt = remember {
@@ -192,12 +195,25 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
         val moon2Part = r.wheel.partOf(moon2N28)
         val verdict2 = RahuKalam.day2Verdict(moon2Part)
 
-        // Circular wheel, ZarTarPro style — natal (filled) + now (hollow).
+        // Circular wheel, ZarTarPro style — one set at a time (no overlap):
+        // ဇာတာ (natal, filled) or လက်ရှိ (now, hollow), like the D1/D9 switch.
         item {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp)) {
+                Button(
+                    onClick = { showTransit = false },
+                    modifier = Modifier.padding(end = 8.dp),
+                    enabled = showTransit
+                ) { Text("● ဇာတာ") }
+                Button(
+                    onClick = { showTransit = true },
+                    enabled = !showTransit
+                ) { Text("○ လက်ရှိ (now)") }
+            }
             RahuKalamWheel(
                 wheel = r.wheel,
                 natalPlanets = r.natalPlanets,
                 transitPlanets = r.transitPlanets,
+                showTransit = showTransit,
                 moon1N28 = moon1N28,
                 moon2N28 = moon2N28,
                 chartName = chartName,
@@ -206,11 +222,6 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                 placeLabel = birth.placeName,
                 modifier = Modifier.fillMaxWidth().aspectRatio(1f)
             )
-            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
-                Text("● ဇာတာ (natal)", style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(end = 12.dp))
-                Text("○ လက်ရှိ ကောင်းကင် (now)", style = MaterialTheme.typography.bodySmall)
-            }
             Spacer(Modifier.height(12.dp))
         }
 
@@ -440,6 +451,7 @@ private fun RahuKalamWheel(
     wheel: RahuKalam.SayagyiWheel,
     natalPlanets: List<Pair<String, Double>>,
     transitPlanets: List<Pair<String, Double>>,
+    showTransit: Boolean,
     moon1N28: Int,
     moon2N28: Int,
     chartName: String,
@@ -468,7 +480,8 @@ private fun RahuKalamWheel(
             val min = floor((within - deg) * 60.0).toInt()
             return "${sign.mm} $deg°$min'"
         }
-        val lonByName = natalPlanets.toMap()
+        // Corner longitudes follow the wheel mode (natal or now).
+        val lonByName = if (showTransit) transitPlanets.toMap() else natalPlanets.toMap()
         fun cornerLine(name: String): String? {
             val lon = lonByName[name] ?: return null
             return "${PLANET_GLYPHS[name]} ${planetLabel(lon)}"
@@ -553,7 +566,6 @@ private fun RahuKalamWheel(
         // ---- Planet markers: natal (filled) + now/transit (hollow) ----
         // Each marker carries its pada syllable (သရ) just clockwise of it.
         val natalR = R * 0.73f
-        val transitR = R * 0.66f
         fun markerPos(r: Float, n28: Int): Offset {
             val mid = cellMid(n28)
             return Offset(px(r, mid), py(r, mid))
@@ -614,26 +626,31 @@ private fun RahuKalamWheel(
                 )
             }
         }
-        natalPlanets.forEach { (name, lon) -> planetMarker(name, lon, natalR, filled = true) }
-        transitPlanets.forEach { (name, lon) -> planetMarker(name, lon, transitR, filled = false) }
-        // Current Moon day 1 (blue ring) / day 2 (green ring), around the
-        // TRANSIT Moon marker (day 1 / day 2 Moon is the current Moon).
-        val transitMoonLon = transitPlanets.firstOrNull { it.first == "Moon" }?.second
-        if (transitMoonLon != null) {
-            val pos = markerPos(transitR, RahuKalam.nakshatra28(transitMoonLon))
-            drawCircle(
-                color = Color(0xFF1565C0), radius = size.minDimension * 0.029f,
-                center = pos, style = Stroke(width = 3f)
-            )
+        // One set only (no overlap): natal (filled) or now (hollow).
+        val displayPlanets = if (showTransit) transitPlanets else natalPlanets
+        displayPlanets.forEach { (name, lon) ->
+            planetMarker(name, lon, natalR, filled = !showTransit)
         }
-        fun moonRing(n28: Int, color: Color) {
-            val pos = markerPos(transitR, n28)
-            drawCircle(
-                color = color, radius = size.minDimension * 0.029f, center = pos,
-                style = Stroke(width = 3f)
-            )
+        // Current Moon day 1 (blue ring) / day 2 (green ring) — only in
+        // လက်ရှိ mode, since day 1 / day 2 Moon is the current Moon.
+        if (showTransit) {
+            val transitMoonLon = transitPlanets.firstOrNull { it.first == "Moon" }?.second
+            if (transitMoonLon != null) {
+                val pos = markerPos(natalR, RahuKalam.nakshatra28(transitMoonLon))
+                drawCircle(
+                    color = Color(0xFF1565C0), radius = size.minDimension * 0.029f,
+                    center = pos, style = Stroke(width = 3f)
+                )
+            }
+            fun moonRing(n28: Int, color: Color) {
+                val pos = markerPos(natalR, n28)
+                drawCircle(
+                    color = color, radius = size.minDimension * 0.029f, center = pos,
+                    style = Stroke(width = 3f)
+                )
+            }
+            moonRing(moon2N28, Color(0xFF2E7D32))
         }
-        moonRing(moon2N28, Color(0xFF2E7D32))
 
         // ---- Dasagga group ring (10 coloured arcs, names along the arc) ----
         val groupR = R * 0.58f
