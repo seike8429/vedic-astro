@@ -51,8 +51,8 @@ import kotlin.math.sin
  * မြန်မာ့ရိုးရာ သရေခေတ္တရာဟုကာလ (Vol. 2). One wheel style, the book
  * cover itself, 100% identical — bright-yellow outer ring of 28
  * nakshatras, pink Dasagga group ring, blue group segments, yellow
- * diamond divided into the 6 Sayagyi parts, red centre dot, pink
- * မော / ဇီဝ boxes. Rotated so the mouth's nakshatra is centred at the
+ * diamond divided into the 6 Sayagyi parts, red centre dot. Rotated so
+ * the mouth's nakshatra is centred at the
  * top, as the cover shows it. (The ZarTarPro concentric-ring style was
  * removed in v1.8.27 at the author's order — book cover only.)
  * The wheel is built from REAL calculated data (SwissEph, Lahiri,
@@ -467,8 +467,9 @@ private fun TableRow(label: String, value: String, boldValue: Boolean = false) {
  * light-green ground, a yellow diamond divided into the 6 Sayagyi
  * parts (mouth pink triangle at the top, anus pink triangle at the
  * bottom, head left, chest top-right, belly bottom-right, tail
- * bottom-left), a red centre dot, and pink မော / ဇီဝ boxes at the
- * left / right vertices. Planet markers (natal filled, now hollow,
+ * bottom-left), and a red centre dot. (The cover's pink မော / ဇီဝ
+ * vertex boxes were removed in v1.8.29 at the author's order — they
+ * are wrong.) Planet markers (natal filled, now hollow,
  * with their pada syllable သရ) sit in the outer nakshatra ring.
  * The wheel is ROTATED so the mouth's nakshatra is centred at the
  * top — exactly as the cover shows it (mouth top, head left) — for
@@ -693,35 +694,6 @@ private fun RahuKalamWheel(
             color = Color.Black, radius = R * 0.025f, center = Offset(cx, cy),
             style = Stroke(width = 2f)
         )
-
-        // ---- Pink မော / ဇီဝ boxes at the left / right vertices ----
-        fun vertexBox(angleDeg: Double, text: String) {
-            val vx = px(D, angleDeg)
-            val vy = py(D, angleDeg)
-            val bw = size.minDimension * 0.075f
-            val bh = size.minDimension * 0.045f
-            drawRect(
-                color = trianglePink,
-                topLeft = Offset(vx - bw / 2f, vy - bh / 2f),
-                size = Size(bw, bh)
-            )
-            drawRect(
-                color = Color.Black,
-                topLeft = Offset(vx - bw / 2f, vy - bh / 2f),
-                size = Size(bw, bh), style = Stroke(width = 2f)
-            )
-            drawContext.canvas.nativeCanvas.apply {
-                val paint = android.graphics.Paint().apply {
-                    color = android.graphics.Color.BLACK
-                    textSize = size.minDimension * 0.024f
-                    textAlign = android.graphics.Paint.Align.CENTER
-                    isFakeBoldText = true
-                }
-                drawText(text, vx, vy + paint.textSize / 3f, paint)
-            }
-        }
-        vertexBox(270.0, "မော")
-        vertexBox(90.0, "ဇီဝ")
 
         // ---- Planet markers in the outer nakshatra ring ----
         // One set only (no overlap): natal (filled) or now (hollow).
