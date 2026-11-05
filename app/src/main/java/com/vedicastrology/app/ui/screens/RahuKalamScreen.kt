@@ -1,6 +1,10 @@
 package com.vedicastrology.app.ui.screens
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,10 +19,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,6 +34,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -107,6 +114,15 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
     // Wheel mode: false = ဇာတာ (natal, filled), true = လက်ရှိ (now, hollow).
     // One set at a time — the author dislikes the two sets overlapping.
     var showTransit by remember { mutableStateOf(false) }
+    // Wheel zoom (the wheel is small on a phone): pinch to zoom, or the
+    // − / ＋ buttons; 1x resets. Pan only while zoomed in.
+    var wheelScale by remember { mutableFloatStateOf(1f) }
+    var wheelOffset by remember { mutableStateOf(Offset.Zero) }
+    val wheelZoom = rememberTransformableState { zoomChange, panChange, _ ->
+        wheelScale = (wheelScale * zoomChange).coerceIn(1f, 4f)
+        if (wheelScale > 1f) wheelOffset += panChange
+        if (wheelScale == 1f) wheelOffset = Offset.Zero
+    }
     var loadError by remember { mutableStateOf<String?>(null) }
 
     val mmtFmt = remember {
@@ -218,16 +234,54 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                     )
                 ) { Text("○ လက်ရှိ (now)") }
             }
+            // Zoom controls (the wheel is small on a phone): − / ＋ and 1x reset.
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        wheelScale = (wheelScale / 1.5f).coerceIn(1f, 4f)
+                        if (wheelScale == 1f) wheelOffset = Offset.Zero
+                    }
+                ) { Text("−") }
+                OutlinedButton(
+                    onClick = { wheelScale = (wheelScale * 1.5f).coerceIn(1f, 4f) }
+                ) { Text("＋") }
+                OutlinedButton(
+                    onClick = { wheelScale = 1f; wheelOffset = Offset.Zero }
+                ) { Text("1x") }
+                Text(
+                    text = "Zoom ${"%.1f".format(wheelScale)}x — လက်နှစ်ချောင်းနဲ့ ဆွဲကြည့်လို့ရသည်",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.align(androidx.compose.ui.Alignment.CenterVertically)
+                )
+            }
+            Spacer(Modifier.height(4.dp))
             // The displayed planet set follows the mode (one set at a time).
-            RahuKalamWheel(
-                wheel = displayWheel,
-                natalPlanets = r.natalPlanets,
-                transitPlanets = r.transitPlanets,
-                showTransit = showTransit,
-                moon1N28 = moon1N28,
-                moon2N28 = moon2N28,
-                modifier = Modifier.fillMaxWidth().aspectRatio(1f)
-            )
+            // Pinch to zoom, drag to pan while zoomed in.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .transformable(wheelZoom)
+                    .graphicsLayer(
+                        scaleX = wheelScale,
+                        scaleY = wheelScale,
+                        translationX = wheelOffset.x,
+                        translationY = wheelOffset.y
+                    )
+            ) {
+                RahuKalamWheel(
+                    wheel = displayWheel,
+                    natalPlanets = r.natalPlanets,
+                    transitPlanets = r.transitPlanets,
+                    showTransit = showTransit,
+                    moon1N28 = moon1N28,
+                    moon2N28 = moon2N28,
+                    modifier = Modifier.fillMaxWidth().aspectRatio(1f)
+                )
+            }
             Spacer(Modifier.height(12.dp))
         }
 
@@ -461,7 +515,9 @@ private fun TableRow(label: String, value: String, boldValue: Boolean = false) {
 /**
  * Circular wheel, EXACTLY like the book cover
  * (မြန်မာ့ရိုးရာ သရေခေတ္တရာဟုကာလ, Vol. 2, cover), outside -> in:
- * bright-yellow outer ring of 28 nakshatras (Burmese numeral per cell),
+ * outermost white pada ring (108 pada syllables, သရ — e.g. Magha
+ * မ မိ မု မေ), bright-yellow ring of 28 nakshatra NAMES (replacing
+ * the numerals, v1.8.30 at the author's order),
  * mauve-pink Dasagga group ring (10 groups, names along the arc),
  * blue Dasagga group segments (one per group, names along the arc),
  * light-green ground, a yellow diamond divided into the 6 Sayagyi
@@ -470,7 +526,7 @@ private fun TableRow(label: String, value: String, boldValue: Boolean = false) {
  * bottom-left), and a red centre dot. (The cover's pink မော / ဇီဝ
  * vertex boxes were removed in v1.8.29 at the author's order — they
  * are wrong.) Planet markers (natal filled, now hollow,
- * with their pada syllable သရ) sit in the outer nakshatra ring.
+ * with their pada syllable သရ) sit in the nakshatra-name ring.
  * The wheel is ROTATED so the mouth's nakshatra is centred at the
  * top — exactly as the cover shows it (mouth top, head left) — for
  * any natal chart. Angles are clockwise from the top.
@@ -525,10 +581,52 @@ private fun RahuKalamWheel(
         }
 
         // ---- Green ground (whole wheel) ----
-        drawCircle(color = coverGreen, radius = R * 0.97f, center = Offset(cx, cy))
+        drawCircle(color = coverGreen, radius = R * 0.99f, center = Offset(cx, cy))
 
-        // ---- Outer yellow ring: 28 nakshatra cells (Burmese numeral) ----
-        val outerR = R * 0.935f
+        // ---- Outermost pada ring: 108 pada syllables (သရ), as in the book ----
+        // One segment per pada (4 per nakshatra, 3 for Uttara Ashadha, 1 for
+        // Abhijit), each showing its syllable — e.g. Magha: မ မိ မု မေ.
+        val padaR = R * 0.962f
+        val padaW = R * 0.05f
+        val cellW = 360.0 / 28.0
+        for (n in 1..28) {
+            val start = cellStart(n)
+            val count = RahuKalam.padaCount(n)
+            for (p in 0 until count) {
+                val pStart = start + p * cellW / count
+                val pSweep = cellW / count
+                drawArc(
+                    color = Color.White, startAngle = (pStart - 90f).toFloat(),
+                    sweepAngle = pSweep.toFloat(), useCenter = false,
+                    topLeft = Offset(cx - padaR, cy - padaR),
+                    size = Size(padaR * 2, padaR * 2),
+                    style = Stroke(width = padaW)
+                )
+                drawLine(
+                    color = Color.Black,
+                    start = Offset(px(padaR - padaW / 2f, pStart), py(padaR - padaW / 2f, pStart)),
+                    end = Offset(px(padaR + padaW / 2f, pStart), py(padaR + padaW / 2f, pStart)),
+                    strokeWidth = 1.5f
+                )
+                val mid = norm360(pStart + pSweep / 2.0)
+                drawArcLabel(
+                    RahuKalam.PADA_SYLLABLES[n - 1][p], mid, padaR,
+                    size.minDimension * 0.013f, cx, cy, bold = false
+                )
+            }
+        }
+        // Outer + inner boundary circles of the pada ring.
+        drawCircle(
+            color = Color.Black, radius = R * 0.987f, center = Offset(cx, cy),
+            style = Stroke(width = 2f)
+        )
+        drawCircle(
+            color = Color.Black, radius = R * 0.937f, center = Offset(cx, cy),
+            style = Stroke(width = 2f)
+        )
+
+        // ---- Yellow ring: 28 nakshatra NAMES (replacing numerals) ----
+        val outerR = R * 0.90f
         val outerW = R * 0.07f
         for (n in 1..28) {
             val start = cellStart(n)
@@ -546,24 +644,24 @@ private fun RahuKalamWheel(
                 end = Offset(px(outerR + outerW / 2f, start), py(outerR + outerW / 2f, start)),
                 strokeWidth = 2f
             )
-            // Burmese numeral, along the arc.
+            // Nakshatra name, along the arc.
             drawArcLabel(
-                RahuKalam.burmeseNum(n), cellAngle(n), R * 0.955f,
-                size.minDimension * 0.018f, cx, cy, bold = false
+                RahuKalam.name28(n), cellAngle(n), R * 0.92f,
+                size.minDimension * 0.013f, cx, cy, bold = false
             )
         }
         // Outer + inner boundary circles of the yellow ring.
         drawCircle(
-            color = Color.Black, radius = R * 0.97f, center = Offset(cx, cy),
+            color = Color.Black, radius = R * 0.935f, center = Offset(cx, cy),
             style = Stroke(width = 2f)
         )
         drawCircle(
-            color = Color.Black, radius = R * 0.90f, center = Offset(cx, cy),
+            color = Color.Black, radius = R * 0.865f, center = Offset(cx, cy),
             style = Stroke(width = 2f)
         )
 
         // ---- Pink Dasagga group ring (10 groups, names along the arc) ----
-        val groupR = R * 0.865f
+        val groupR = R * 0.83f
         val groupW = R * 0.07f
         RahuKalam.dasaggaGroups(wheel.mouthStart28).forEach { group ->
             val first = group.numbers.first()
@@ -588,7 +686,7 @@ private fun RahuKalamWheel(
             )
         }
         drawCircle(
-            color = Color.Black, radius = R * 0.83f, center = Offset(cx, cy),
+            color = Color.Black, radius = R * 0.795f, center = Offset(cx, cy),
             style = Stroke(width = 2f)
         )
 
@@ -603,7 +701,7 @@ private fun RahuKalamWheel(
                 val steps = maxOf(4, (sweep / 2.0).toInt())
                 for (i in 0..steps) {
                     val a = start + sweep * i / steps
-                    val p = Offset(px(R * 0.83f, a), py(R * 0.83f, a))
+                    val p = Offset(px(R * 0.795f, a), py(R * 0.795f, a))
                     if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y)
                 }
                 // Inner boundary (diamond edge), back to the start.
@@ -619,7 +717,7 @@ private fun RahuKalamWheel(
             drawPath(path = path, color = Color.Black, style = Stroke(width = 2f))
             // Group name, along the arc, midway between diamond and ring.
             val mid = norm360(start + sweep / 2.0)
-            val midR = (R * 0.83f + diamondR(mid)) / 2f
+            val midR = (R * 0.795f + diamondR(mid)) / 2f
             drawArcLabel(
                 group.mm, mid, midR, size.minDimension * 0.020f, cx, cy, bold = true
             )
@@ -698,7 +796,7 @@ private fun RahuKalamWheel(
         // ---- Planet markers in the outer nakshatra ring ----
         // One set only (no overlap): natal (filled) or now (hollow).
         val displayPlanets = if (showTransit) transitPlanets else natalPlanets
-        val markerR = R * 0.925f
+        val markerR = R * 0.885f
         displayPlanets.forEach { (name, lon) ->
             val ang = rotAngle(lon)
             val pos = Offset(px(markerR, ang), py(markerR, ang))

@@ -215,6 +215,13 @@ object RahuKalam {
      * 3°20' (NAK_SPAN / 4). Uttara Ashadha (21) is only 10° wide in
      * the 28-system, so it has 3 padas; Abhijit (22) is a single pada.
      */
+    /** Number of padas in a 28-system nakshatra: 1 for Abhijit (22), 3 for Uttara Ashadha (21), else 4. */
+    fun padaCount(n28: Int): Int = when (n28) {
+        22 -> 1
+        21 -> 3
+        else -> 4
+    }
+
     fun padaOf(lon: Double): Pair<Int, Int> {
         val n28 = nakshatra28(lon)
         val within = ((lon - nakshatraStart(n28)) % 360.0 + 360.0) % 360.0
