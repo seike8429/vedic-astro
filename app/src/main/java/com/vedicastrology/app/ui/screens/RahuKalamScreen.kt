@@ -706,6 +706,27 @@ private fun RahuKalamWheel(
             norm360((n28 - 1) * 360.0 / 28.0 + 360.0 / 56.0 + rot)
         /** Angle (rotated frame) of a nakshatra number's cell start. */
         fun cellStart(n28: Int) = norm360((n28 - 1) * 360.0 / 28.0 + rot)
+        /**
+         * Angle (rotated frame) of a planet/marker: the centre of its TRUE
+         * nakshatra's cell, nudged by its position within that nakshatra.
+         * The ring is 28 EQUAL cells, but true nakshatras are unequal
+         * (13 deg 20 min, Abhijit only 3 deg 20 min) — so a raw longitude
+         * angle lands in the WRONG cell near a boundary (e.g. Mars 116.9
+         * deg, truly Ashlesha, fell in the Magha cell). Anchoring to the
+         * true nakshatra's cell keeps the marker in the segment the chart
+         * names; the nudge keeps two planets in one nakshatra apart.
+         */
+        fun markerAngle(lon: Double): Double {
+            val n28 = RahuKalam.nakshatra28(lon)
+            val start = RahuKalam.nakshatraStart(n28)
+            val end = if (n28 == 28) 360.0
+                else RahuKalam.nakshatraStart(n28 + 1)
+            val span = end - start
+            val into = norm360(lon - start) / span  // 0..1 into nakshatra
+            val cellW = 360.0 / 28.0
+            val offset = (into - 0.5) * cellW * 0.6
+            return norm360(cellAngle(n28) + offset)
+        }
         /** Distance from the centre to the diamond's edge at an angle. */
         fun diamondR(degClockwiseFromTop: Double): Float {
             val t = Math.toRadians(degClockwiseFromTop)
@@ -930,7 +951,7 @@ private fun RahuKalamWheel(
         val displayPlanets = if (showTransit) transitPlanets else natalPlanets
         val markerR = R * 0.885f
         displayPlanets.forEach { (name, lon) ->
-            val ang = rotAngle(lon)
+            val ang = markerAngle(lon)
             val pos = Offset(px(markerR, ang), py(markerR, ang))
             val color = PLANET_COLORS[name] ?: Color.Gray
             val radius = size.minDimension * 0.012f
@@ -988,8 +1009,8 @@ private fun RahuKalamWheel(
             val transitMoonLon = transitPlanets.firstOrNull { it.first == "Moon" }?.second
             if (transitMoonLon != null) {
                 val pos = Offset(
-                    px(markerR, rotAngle(transitMoonLon)),
-                    py(markerR, rotAngle(transitMoonLon))
+                    px(markerR, markerAngle(transitMoonLon)),
+                    py(markerR, markerAngle(transitMoonLon))
                 )
                 drawCircle(
                     color = Color(0xFF1565C0), radius = size.minDimension * 0.019f,
@@ -997,7 +1018,8 @@ private fun RahuKalamWheel(
                 )
             }
             val moon2Pos = Offset(
-                px(markerR, cellAngle(moon2N28)), py(markerR, cellAngle(moon2N28))
+                px(markerR, markerAngle(r.moon2Lon)),
+                py(markerR, markerAngle(r.moon2Lon))
             )
             drawCircle(
                 color = Color(0xFF2E7D32), radius = size.minDimension * 0.019f,
