@@ -74,7 +74,12 @@ private data class Reading(
     val transitPlanets: List<Pair<String, Double>>,
     val moon1Lon: Double,
     val moon2Lon: Double,
+    /** Natal wheel: head = the nakshatra natal Rahu occupies. */
     val wheel: RahuKalam.SayagyiWheel,
+    /** Transit wheel: head = the nakshatra CURRENT (transit) Rahu occupies.
+     *  When Rahu moves to a new nakshatra the head moves and every part
+     *  shifts with it — the wheel is dynamic, not fixed. */
+    val transitWheel: RahuKalam.SayagyiWheel,
     val useTrueRahu: Boolean
 )
 
@@ -148,9 +153,12 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                 val transit = transitNames.map { name ->
                     name to Ephemeris.planetPosition(jd1, name, useTrueRahu).first
                 }
+                // Transit wheel: head = the nakshatra CURRENT Rahu occupies.
+                val transitRahuLon = transit.first { it.first == "Rahu" }.second
                 Reading(
                     now, now + 24L * 60 * 60 * 1000, rahuLon, planets, transit,
-                    moon1, moon2, RahuKalam.sayagyiWheel(rahuLon), useTrueRahu
+                    moon1, moon2, RahuKalam.sayagyiWheel(rahuLon),
+                    RahuKalam.sayagyiWheel(transitRahuLon), useTrueRahu
                 )
             }
             reading = r
@@ -165,7 +173,9 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
             Text("ရာဟုကာလ", style = MaterialTheme.typography.titleLarge)
             Text(
                 "ဆရာကြီး စက်ဝိုင်း — မြန်မာ့ရိုးရာ သရေခေတ္တရာဟုကာလ စာအုပ်နည်းအတိုင်း။ " +
-                    "ဇာတာမှာ ရာဟု စီးတဲ့ နက္ခတ်က ဦးခေါင်း၊ ကျန်အပိုင်းတွေ အစဉ်အတိုင်း။ " +
+                    "ရာဟု စီးတဲ့ နက္ခတ်က ဦးခေါင်း၊ ကျန်အပိုင်းတွေ အစဉ်အတိုင်း။ " +
+                    "ရာဟု နက္ခတ် ပြောင်းရင် ခေါင်း ရွေ့ပြီး အပိုင်းအားလုံး လိုက်ရွေ့တယ် — " +
+                    "ဇာတာ စက်ဝိုင်း (ဇာတာ ရာဟု) နဲ့ လက်ရှိ စက်ဝိုင်း (လက်ရှိ ရာဟု) ခွဲပြထားသည်။ " +
                     "လ ရဲ့ အပိုင်း (၁ နေ့ / ၂ လာ) ကို ကြည့်ပြီး အဟော ဖတ်သည်။",
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -187,14 +197,20 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
         }
 
         val rahuN28 = RahuKalam.nakshatra28(r.natalRahuLon)
+        val transitRahuLon = r.transitPlanets.first { it.first == "Rahu" }.second
+        val transitRahuN28 = RahuKalam.nakshatra28(transitRahuLon)
         val moon1N28 = RahuKalam.nakshatra28(r.moon1Lon)
         val moon2N28 = RahuKalam.nakshatra28(r.moon2Lon)
-        val moon1Part = r.wheel.partOf(moon1N28)
-        val moon2Part = r.wheel.partOf(moon2N28)
+        // The displayed wheel follows the mode: ဇာတာ = natal Rahu's wheel,
+        // လက်ရှိ = current Rahu's wheel (head + all parts shifted with Rahu).
+        val displayWheel = if (showTransit) r.transitWheel else r.wheel
+        val moon1Part = displayWheel.partOf(moon1N28)
+        val moon2Part = displayWheel.partOf(moon2N28)
         val verdict2 = RahuKalam.day2Verdict(moon2Part)
 
-        // Circular wheel, ZarTarPro style — one set at a time (no overlap):
-        // ဇာတာ (natal, filled) or လက်ရှိ (now, hollow), like the D1/D9 switch.
+        // Circular wheel (book-cover style) — one set at a time (no overlap):
+        // ဇာတာ (natal wheel, filled) or လက်ရှိ (transit wheel, hollow),
+        // like the D1/D9 switch.
         item {
             Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp)) {
                 Button(
@@ -208,7 +224,7 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                 ) { Text("○ လက်ရှိ (now)") }
             }
             RahuKalamWheel(
-                wheel = r.wheel,
+                wheel = displayWheel,
                 natalPlanets = r.natalPlanets,
                 transitPlanets = r.transitPlanets,
                 showTransit = showTransit,
@@ -226,8 +242,16 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                     TableRow("ဇာတာ", chartName.ifEmpty { "—" }, boldValue = true)
                     HorizontalDivider()
                     TableRow(
-                        "ဇာတာ ရာဟု (${if (r.useTrueRahu) "True" else "Mean"})",
-                        "${RahuKalam.name28(rahuN28)} (နံပါတ် $rahuN28) — ဦးခေါင်း အစ",
+                        if (showTransit) {
+                            "လက်ရှိ ရာဟု (${if (r.useTrueRahu) "True" else "Mean"})"
+                        } else {
+                            "ဇာတာ ရာဟု (${if (r.useTrueRahu) "True" else "Mean"})"
+                        },
+                        if (showTransit) {
+                            "${RahuKalam.name28(transitRahuN28)} (နံပါတ် $transitRahuN28) — ဦးခေါင်း အစ"
+                        } else {
+                            "${RahuKalam.name28(rahuN28)} (နံပါတ် $rahuN28) — ဦးခေါင်း အစ"
+                        },
                         boldValue = true
                     )
                     HorizontalDivider()
@@ -277,7 +301,7 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                         RahuKalam.WheelPart.CHEST, RahuKalam.WheelPart.BELLY,
                         RahuKalam.WheelPart.ANUS, RahuKalam.WheelPart.HIPS
                     )
-                    val byPart = r.wheel.parts.associateBy { it.part }
+                    val byPart = displayWheel.parts.associateBy { it.part }
                     displayOrder.forEachIndexed { idx, part ->
                         val entry = byPart[part] ?: return@forEachIndexed
                         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
