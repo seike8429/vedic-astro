@@ -220,7 +220,16 @@ private fun AppContent(vm: ChartViewModel) {
             }
         }
         is Screen.RahuKalam -> {
-            RahuKalamScreen(useTrueRahu = vm.useTrueRahu)
+            val chart = vm.chart
+            if (chart == null) {
+                LoadingOrError(vm)
+            } else {
+                RahuKalamScreen(
+                    natal = chart,
+                    chartName = vm.savedCharts.firstOrNull { it.id == vm.currentChartId }?.name ?: "",
+                    useTrueRahu = vm.useTrueRahu
+                )
+            }
         }
     }
     }

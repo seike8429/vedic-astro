@@ -7,51 +7,57 @@ package com.vedicastrology.app.engine
  * Pure Kotlin, no Android imports, so the logic stays testable like
  * TransitEffectLogic. Nothing here is the Indian standard Rahu Kalam
  * (fixed weekday time slots): the Burmese wheel is built from the
- * nakshatra Rahu currently occupies.
+ * nakshatra Rahu occupies in the NATAL chart.
  *
- * Method (book, verified against the worked example):
+ * Method (book + author's correction 2026-11-05):
  *  - 28 nakshatras, Ashwini = 1. Abhijit (22, shown as X in the book's
  *    tables) sits between Uttara Ashadha (21) and Shravana (23):
  *    Uttara Ashadha spans 266°40'–276°40' (10°), Abhijit 276°40'–280°00'
  *    (3°20'), every other nakshatra 13°20'.
- *  - Mouth (ခံတွင်း) = the nakshatra Rahu occupies.
- *  - Counting forward from the mouth, wrapping at 28:
- *    mouth 1, chest (ရင်) 7, belly (ဝမ်း) 6, anus (စအို) 1,
- *    hips (အပြီး) 6, legs (ခြေထောက်) 7 = 28.
- *    Worked example (book): Rahu nakshatra 19 (မူလ/Mula) →
- *    mouth 19; chest 20–26; belly 27, 28, 1–4; anus 5; hips 6–11;
- *    legs 12–18. This implementation reproduces it exactly.
+ *  - The wheel is built from the NATAL chart: the HEAD (ဦးခေါင်း) starts
+ *    at the nakshatra Rahu occupies natally, and the rest follow in
+ *    order (clockwise): head 7, mouth (ခံတွင်း) 1, chest (ရင်) 7,
+ *    belly (ဝမ်း) 6, anus (စအို) 1, hips (အပြီး) 6 = 28.
+ *    (Earlier v1.8.15 wrongly used the transiting Rahu and labelled the
+ *    last part "legs" (ခြေထောက်) — the author's word corrects both: the
+ *    wheel is natal, and Rahu's nakshatra is the head.)
  *  - Tail (ကေတုအမြှီး) = the anus part (စအို), per the author's word.
- *  - General day-2 rule (book, Sayagyi predictions): when the Moon
+ *  - The daily reading uses the CURRENT Moon: day 1 = today, day 2 =
+ *    tomorrow. General day-2 rule (book, Sayagyi): when the Moon
  *    (day 2) is in a chest / belly / anus nakshatra, work succeeds and
- *    marriage is favourable; in a hips / legs / mouth nakshatra, work
+ *    marriage is favourable; in a hips / head / mouth nakshatra, work
  *    meets obstacles and marriage does not hold.
  *
- * OPEN (author to confirm): the wheel diagram labels the 7-nakshatra
- * part ဦးခေါင်း (head) where the method text and the general rule call
- * it ခြေထောက် (legs). The code uses ခြေထောက်, following the text; if
- * the author confirms ဦးခေါင်း, it is a one-word label change.
+ * Verified against the author's own chart (Rahu natal = Swati, 15):
+ * head 15–21, mouth 22 (Abhijit), chest 23–28, 1, belly 2–7,
+ * anus 8 (Pushya), hips 9–14. His natal Moon (Shravana, 23) falls in
+ * the chest; his Nama nakshatra (Magha, 10) falls in the hips.
  */
 object RahuKalam {
 
     /** Abhijit's span start: 276°40' sidereal. */
     private const val ABHIJIT_START = 276.0 + 40.0 / 60.0
 
-    /** The six body parts of the Sayagyi wheel, in forward order. */
+    /**
+     * The six body parts of the Sayagyi wheel, in cycle order starting
+     * at the mouth. The construction starts at the HEAD (Rahu's natal
+     * nakshatra) and runs head -> mouth -> chest -> belly -> anus ->
+     * hips -> head.
+     */
     enum class WheelPart(val mm: String, val count: Int) {
         MOUTH("ခံတွင်း", 1),
         CHEST("ရင်", 7),
         BELLY("ဝမ်း", 6),
         ANUS("စအို", 1),
         HIPS("အပြီး", 6),
-        LEGS("ခြေထောက်", 7)
+        HEAD("ဦးခေါင်း", 7)
     }
 
     /** One part of a built wheel: the part plus its nakshatra numbers (1-28). */
     data class WheelPartEntry(val part: WheelPart, val numbers: List<Int>)
 
-    /** A built Sayagyi wheel: Rahu's nakshatra (1-28) is the mouth. */
-    data class SayagyiWheel(val mouth28: Int, val parts: List<WheelPartEntry>) {
+    /** A built Sayagyi wheel: Rahu's natal nakshatra (1-28) starts the head. */
+    data class SayagyiWheel(val headStart28: Int, val parts: List<WheelPartEntry>) {
         /** Which part contains 28-nakshatra number [n28] (1-28). */
         fun partOf(n28: Int): WheelPart =
             parts.first { n28 in it.numbers }.part
@@ -76,18 +82,27 @@ object RahuKalam {
         else -> "?"
     }
 
-    /** Build the Sayagyi wheel from Rahu's sidereal longitude. */
-    fun sayagyiWheel(rahuLon: Double): SayagyiWheel {
-        val mouth = nakshatra28(rahuLon)
-        var next = mouth
+    /**
+     * Build the Sayagyi wheel from Rahu's NATAL sidereal longitude.
+     * The head starts at Rahu's nakshatra; the rest follow in order.
+     */
+    fun sayagyiWheel(natalRahuLon: Double): SayagyiWheel {
+        val headStart = nakshatra28(natalRahuLon)
+        // Offset of each part's first nakshatra from the head start.
+        val offsets = mapOf(
+            WheelPart.HEAD to 0,
+            WheelPart.MOUTH to 7,
+            WheelPart.CHEST to 8,
+            WheelPart.BELLY to 15,
+            WheelPart.ANUS to 21,
+            WheelPart.HIPS to 22
+        )
         val parts = WheelPart.entries.map { part ->
-            val numbers = (0 until part.count).map { step ->
-                wrap28(next + step)
-            }
-            next = wrap28(next + part.count)
+            val start = wrap28(headStart + (offsets[part] ?: 0))
+            val numbers = (0 until part.count).map { step -> wrap28(start + step) }
             WheelPartEntry(part, numbers)
         }
-        return SayagyiWheel(mouth, parts)
+        return SayagyiWheel(headStart, parts)
     }
 
     private fun wrap28(n: Int): Int = ((n - 1) % 28 + 28) % 28 + 1
@@ -100,7 +115,7 @@ object RahuKalam {
 
     fun day2Verdict(part: WheelPart): Verdict = when (part) {
         WheelPart.CHEST, WheelPart.BELLY, WheelPart.ANUS -> Verdict.GOOD
-        WheelPart.HIPS, WheelPart.LEGS, WheelPart.MOUTH -> Verdict.OBSTACLE
+        WheelPart.HIPS, WheelPart.HEAD, WheelPart.MOUTH -> Verdict.OBSTACLE
     }
 
     /** Julian Day (UT) for a Unix epoch-millis instant. */
