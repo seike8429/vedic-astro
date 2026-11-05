@@ -555,30 +555,37 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                     }
                     HorizontalDivider()
                     val displayGroups = RahuKalam.dasaggaGroups(displayWheel.mouthStart28)
-                    displayGroups.forEachIndexed { idx, group ->
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
-                            Text(group.mm, Modifier.weight(0.6f),
-                                style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                group.numbers.joinToString(", ") {
-                                    val d = RahuKalam.displayNum(it)
-                                    if (d == null) RahuKalam.name28(it)
-                                    else "${RahuKalam.name28(it)} (${RahuKalam.burmeseNum(d)})"
-                                },
-                                Modifier.weight(1.7f),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Text(
-                                // 4 သရ per nakshatra (3 for Uttara Ashadha,
-                                // 1 for Abhijit) — e.g. 5 nakshatras = 20 သရ.
-                                group.numbers.flatMap { n ->
-                                    RahuKalam.PADA_SYLLABLES[n - 1].take(RahuKalam.padaCount(n))
-                                }.joinToString(", "),
-                                Modifier.weight(1.7f),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
+                    displayGroups.forEachIndexed { gIdx, group ->
+                        // One row per nakshatra (author's order): 3 nakshatras
+                        // = 3 rows; each nakshatra's 4 သရ sit on its own row.
+                        group.numbers.forEachIndexed { nIdx, n ->
+                            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
+                                Text(
+                                    if (nIdx == 0) group.mm else "",
+                                    Modifier.weight(0.6f),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    run {
+                                        val d = RahuKalam.displayNum(n)
+                                        if (d == null) RahuKalam.name28(n)
+                                        else "${RahuKalam.name28(n)} (${RahuKalam.burmeseNum(d)})"
+                                    },
+                                    Modifier.weight(1.7f),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    // 4 သရ per nakshatra (3 for Uttara
+                                    // Ashadha, 1 for Abhijit), one row.
+                                    RahuKalam.PADA_SYLLABLES[n - 1]
+                                        .take(RahuKalam.padaCount(n))
+                                        .joinToString(", "),
+                                    Modifier.weight(1.7f),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
                         }
-                        if (idx < displayGroups.size - 1) HorizontalDivider()
+                        if (gIdx < displayGroups.size - 1) HorizontalDivider()
                     }
                 }
             }
@@ -608,10 +615,11 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
  * bottom, head left, chest top-right, belly bottom-right, tail
  * bottom-left), and a red centre dot. (The cover's pink မော / ဇီဝ
  * vertex boxes were removed in v1.8.29 at the author's order — they
- * are wrong.) No planet markers on the wheel since v1.8.40 at the
- * author's order — the wheel shows nakshatra names + pada syllables
- * + the 6 parts only; planet positions stay in the table below.
- * Only the day-1 (blue) / day-2 (green) Moon rings mark the Moon.
+ * are wrong.) No planet markers and no Moon rings on the wheel since
+ * v1.8.42 at the author's order — the wheel shows nakshatra names +
+ * pada syllables + the 6 parts only; planet positions stay in the
+ * table below, and the Moon's part is shown by the dots in the
+ * 6-part table below the wheel.
  * The wheel is ROTATED so the mouth's nakshatra is centred at the
  * top — exactly as the cover shows it (mouth top, head left) — for
  * any natal chart. Angles are clockwise from the top.
@@ -659,27 +667,10 @@ private fun RahuKalamWheel(
             norm360((n28 - 1) * 360.0 / 28.0 + 360.0 / 56.0 + rot)
         /** Angle (rotated frame) of a nakshatra number's cell start. */
         fun cellStart(n28: Int) = norm360((n28 - 1) * 360.0 / 28.0 + rot)
-        /**
-         * Angle (rotated frame) of a planet/marker: the centre of its TRUE
-         * nakshatra's cell, nudged by its position within that nakshatra.
-         * The ring is 28 EQUAL cells, but true nakshatras are unequal
-         * (13 deg 20 min, Abhijit only 3 deg 20 min) — so a raw longitude
-         * angle lands in the WRONG cell near a boundary (e.g. Mars 116.9
-         * deg, truly Ashlesha, fell in the Magha cell). Anchoring to the
-         * true nakshatra's cell keeps the marker in the segment the chart
-         * names; the nudge keeps two planets in one nakshatra apart.
-         */
-        fun markerAngle(lon: Double): Double {
-            val n28 = RahuKalam.nakshatra28(lon)
-            val start = RahuKalam.nakshatraStart(n28)
-            val end = if (n28 == 28) 360.0
-                else RahuKalam.nakshatraStart(n28 + 1)
-            val span = end - start
-            val into = norm360(lon - start) / span  // 0..1 into nakshatra
-            val cellW = 360.0 / 28.0
-            val offset = (into - 0.5) * cellW * 0.6
-            return norm360(cellAngle(n28) + offset)
-        }
+        // (markerAngle removed in v1.8.42 — no markers or Moon rings are
+        // drawn on the wheel any more, so no longitude-to-angle mapping
+        // for markers is needed. The true-nakshatra anchoring logic is
+        // recorded in the project notes if markers ever return.)
         /** Distance from the centre to the diamond's edge at an angle. */
         fun diamondR(degClockwiseFromTop: Double): Float {
             val t = Math.toRadians(degClockwiseFromTop)
@@ -899,33 +890,11 @@ private fun RahuKalamWheel(
             style = Stroke(width = 2f)
         )
 
-        // ---- No planet markers on the wheel (author's order, v1.8.40) ----
-        // The wheel shows nakshatra names + pada syllables (သရ) + the 6
-        // parts only; planet positions stay in the planets table below.
-        // markerR is kept for the day-1 / day-2 Moon rings below.
-        val markerR = R * 0.885f
-        // Current Moon day 1 (blue ring) / day 2 (green ring) — only in
-        // လက်ရှိ mode, since day 1 / day 2 Moon is the current Moon.
-        if (showTransit) {
-            val transitMoonLon = transitPlanets.firstOrNull { it.first == "Moon" }?.second
-            if (transitMoonLon != null) {
-                val pos = Offset(
-                    px(markerR, markerAngle(transitMoonLon)),
-                    py(markerR, markerAngle(transitMoonLon))
-                )
-                drawCircle(
-                    color = Color(0xFF1565C0), radius = size.minDimension * 0.019f,
-                    center = pos, style = Stroke(width = 3f)
-                )
-            }
-            val moon2Pos = Offset(
-                px(markerR, cellAngle(moon2N28)), py(markerR, cellAngle(moon2N28))
-            )
-            drawCircle(
-                color = Color(0xFF2E7D32), radius = size.minDimension * 0.019f,
-                center = moon2Pos, style = Stroke(width = 3f)
-            )
-        }
+        // ---- No planet markers and no Moon rings on the wheel ----
+        // (author's order, v1.8.42): the wheel shows nakshatra names +
+        // pada syllables (သရ) + the 6 parts only. Planet positions stay
+        // in the planets table below; the Moon's part is shown by the
+        // dots in the 6-part table below the wheel.
     }
 }
 
