@@ -411,75 +411,10 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
             Spacer(Modifier.height(12.dp))
         }
 
-        // Six-part table, in construction order (head first, from Rahu).
-        item {
-            Text("စက်ဝိုင်း ၆ ပိုင်း", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(4.dp))
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(4.dp)) {
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
-                        Text("အပိုင်း", Modifier.weight(0.9f), fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.bodyMedium)
-                        Text("နံပါတ်", Modifier.weight(1.2f), fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.bodyMedium)
-                        Text("လ ၁ နေ့", Modifier.weight(0.9f), fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.bodyMedium)
-                        Text("လ ၂ လာ", Modifier.weight(0.9f), fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.bodyMedium)
-                    }
-                    HorizontalDivider()
-                    val displayOrder = listOf(
-                        RahuKalam.WheelPart.HEAD, RahuKalam.WheelPart.MOUTH,
-                        RahuKalam.WheelPart.CHEST, RahuKalam.WheelPart.BELLY,
-                        RahuKalam.WheelPart.ANUS, RahuKalam.WheelPart.TAIL
-                    )
-                    val byPart = displayWheel.parts.associateBy { it.part }
-                    displayOrder.forEachIndexed { idx, part ->
-                        val entry = byPart[part] ?: return@forEachIndexed
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
-                            Text(entry.part.mm, Modifier.weight(0.9f),
-                                fontWeight = if (part == RahuKalam.WheelPart.HEAD) FontWeight.Bold else null,
-                                style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                entry.numbers.joinToString(", ") { RahuKalam.displayNumLabel(it) },
-                                Modifier.weight(1.2f),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Text(
-                                if (moon1N28 in entry.numbers) "●" else "",
-                                Modifier.weight(0.9f),
-                                color = Color(0xFF1565C0),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Text(
-                                if (moon2N28 in entry.numbers) "●" else "",
-                                Modifier.weight(0.9f),
-                                color = Color(0xFF2E7D32),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                        if (idx < displayOrder.size - 1) HorizontalDivider()
-                    }
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
-                Text("● လ ၁ နေ့", style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF1565C0), modifier = Modifier.padding(end = 12.dp))
-                Text("● လ ၂ လာ", style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF2E7D32))
-            }
-            Spacer(Modifier.height(12.dp))
-            Text(
-                "အဟော အပြည့်အစုံ (အပိုင်းအတွဲ × ၅ ခေါင်းစဉ် — စီးပွားရေး၊ ပညာရေး၊ " +
-                    "ကျန်းမာရေး၊ အိမ်ထောင်ရေး၊ အချစ်အဆိုင်) ကို စာအုပ်ကနေ နောက်ဗားရှင်းမှာ ထည့်ပါမည်။",
-                style = MaterialTheme.typography.bodySmall
-            )
-            Spacer(Modifier.height(12.dp))
-        }
-
         // Planets: the displayed set (ဇာတာ or လက်ရှိ, following the toggle),
-        // one line per planet — ဂြိုလ် | နက္ခတ် | ပါဒ | သရ (author's format).
+        // one line per planet — ဂြိုလ် | နက္ခတ် | ပါဒ | သရ | အပိုင်း
+        // (author's format; အပိုင်း = which of the 6 Sayagyi parts the
+        // planet's nakshatra falls in, so the 6-part table is not needed).
         item {
             Text(
                 if (showTransit) "ဂြိုလ် — လက်ရှိ (now)" else "ဂြိုလ် — ဇာတာ",
@@ -489,13 +424,15 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(4.dp)) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
-                        Text("ဂြိုလ်", Modifier.weight(0.9f), fontWeight = FontWeight.Bold,
+                        Text("ဂြိုလ်", Modifier.weight(0.8f), fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium)
                         Text("နက္ခတ်", Modifier.weight(1.2f), fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium)
-                        Text("ပါဒ", Modifier.weight(0.5f), fontWeight = FontWeight.Bold,
+                        Text("ပါဒ", Modifier.weight(0.4f), fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium)
-                        Text("သရ", Modifier.weight(0.6f), fontWeight = FontWeight.Bold,
+                        Text("သရ", Modifier.weight(0.5f), fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyMedium)
+                        Text("အပိုင်း", Modifier.weight(0.8f), fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium)
                     }
                     HorizontalDivider()
@@ -514,7 +451,7 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                         val lon = displayByName[name]
                         val (n28, pada) = if (lon == null) 0 to 0 else RahuKalam.padaOf(lon)
                         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
-                            Text(planetMm[name] ?: name, Modifier.weight(0.9f),
+                            Text(planetMm[name] ?: name, Modifier.weight(0.8f),
                                 style = MaterialTheme.typography.bodyMedium)
                             Text(
                                 if (lon == null) "—" else RahuKalam.name28(n28),
@@ -523,12 +460,17 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                             )
                             Text(
                                 if (lon == null || n28 == 22) "—" else "$pada",
-                                Modifier.weight(0.5f),
+                                Modifier.weight(0.4f),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Text(
                                 if (lon == null) "—" else RahuKalam.syllableOf(lon),
-                                Modifier.weight(0.6f),
+                                Modifier.weight(0.5f),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                if (lon == null) "—" else displayWheel.partOf(n28).mm,
+                                Modifier.weight(0.8f),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
