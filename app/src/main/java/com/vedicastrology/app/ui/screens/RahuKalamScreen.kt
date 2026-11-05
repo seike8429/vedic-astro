@@ -60,7 +60,7 @@ import kotlin.math.floor
 import kotlin.math.sin
 
 /**
- * Rahu Kalam tab — Sayagyi (ဆရာကြီး) wheel, from the book
+ * Rahu Kalam tab — Sayadaw (သယောဒယ) wheel, from the book
  * မြန်မာ့ရိုးရာ သရေခေတ္တရာဟုကာလ (Vol. 2). One wheel style, the book
  * cover itself, 100% identical — bright-yellow outer ring of 28
  * nakshatras, pink Dasagga group ring, blue group segments, yellow
@@ -182,9 +182,9 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
 
     LazyColumn(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
         item {
-            Text("ရာဟုကာလနစက်", style = MaterialTheme.typography.titleLarge)
+            Text("သယောဒယ ရာဟုကာလနစက်", style = MaterialTheme.typography.titleLarge)
             Text(
-                "ဆရာကြီး စက်ဝိုင်း — မြန်မာ့ရိုးရာ သရေခေတ္တရာဟုကာလ စာအုပ်နည်းအတိုင်း။ " +
+                "သယောဒယ ရာဟုကာလနစက် — မြန်မာ့ရိုးရာ သရေခေတ္တရာဟုကာလ စာအုပ်နည်းအတိုင်း။ " +
                     "ရာဟု စီးတဲ့ နက္ခတ်က ခံတွင်း၊ ကျန်အပိုင်းတွေ အစဉ်အတိုင်း။ " +
                     "ရာဟု နက္ခတ် ပြောင်းရင် ခံတွင်း ရွေ့ပြီး အပိုင်းအားလုံး လိုက်ရွေ့တယ် — " +
                     "ဇာတာ စက်ဝိုင်း (ဇာတာ ရာဟု) နဲ့ လက်ရှိ စက်ဝိုင်း (လက်ရှိ ရာဟု) ခွဲပြထားသည်။ " +
