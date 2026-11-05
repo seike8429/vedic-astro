@@ -604,19 +604,55 @@ private fun RahuKalamWheel(
         fun py(r: Float, deg: Double) = cy + (r * sin(rad(deg))).toFloat()
         fun norm360(a: Double) = ((a % 360.0) + 360.0) % 360.0
 
-        // Rotation: the mouth's nakshatra is centred at the top (0 deg),
-        // exactly as the cover shows it.
+        // Angles: the mouth's nakshatra is centred at the top (0 deg) and
+        // the anus's nakshatra is centred exactly at the bottom (180 deg),
+        // as the book requires — ဇီဝ and ဂူဒ are 180 deg apart. The
+        // nakshatras are placed by their OFFSET from the mouth, not by
+        // equal 360/28 cells: the mouth->anus half holds d steps of w1
+        // deg each, the anus->mouth half holds 27-d steps of w2 deg each,
+        // where d is the anus offset (14 normally, 15 when Abhijit shifts
+        // it). When d == 14 this is exactly the old equal-cell wheel
+        // (w1 == w2 == 360/28); when d == 15 the halves differ slightly
+        // (12 deg vs 14 deg) so the mouth/anus opposition stays exact.
+        // (v1.8.49: the equal-cell wheel put the anus 12.857 deg past the
+        // bottom in the natal chart — ဆရာ: "ဇီဝ ဂူဒ 180 မဖြစ် ပုံမှာ".)
         val mouthN28 = wheel.parts
             .first { it.part == RahuKalam.WheelPart.MOUTH }.numbers.first()
-        val mouthCentre = (mouthN28 - 1) * 360.0 / 28.0 + 360.0 / 56.0
-        val rot = -mouthCentre
-        /** Angle (clockwise from top, rotated frame) of a longitude. */
-        fun rotAngle(lon: Double) = norm360(lon + rot)
-        /** Angle (rotated frame) of a nakshatra number's cell centre. */
-        fun cellAngle(n28: Int) =
-            norm360((n28 - 1) * 360.0 / 28.0 + 360.0 / 56.0 + rot)
-        /** Angle (rotated frame) of a nakshatra number's cell start. */
-        fun cellStart(n28: Int) = norm360((n28 - 1) * 360.0 / 28.0 + rot)
+        val anusN28 = wheel.parts
+            .first { it.part == RahuKalam.WheelPart.ANUS }.numbers.first()
+        val anusOff = (anusN28 - mouthN28 + 28) % 28
+        val w1 = 180.0 / anusOff
+        val w2 = (180.0 - w1) / (27 - anusOff)
+        /** Offset of a nakshatra number from the mouth (0..27). */
+        fun off(n28: Int) = (n28 - mouthN28 + 28) % 28
+        /** Angle (clockwise from top) of a nakshatra's cell centre. */
+        fun cellAngle(n28: Int): Double {
+            val o = off(n28)
+            return when {
+                o == 0 -> 0.0
+                o < anusOff -> o * w1
+                o == anusOff -> 180.0
+                else -> 180.0 + w1 / 2.0 + (o - anusOff - 0.5) * w2
+            }
+        }
+        /** Angle (clockwise from top) of a nakshatra's cell start. */
+        fun cellStart(n28: Int): Double {
+            val o = off(n28)
+            return when {
+                o == 0 -> norm360(-w1 / 2.0)
+                o < anusOff -> (o - 0.5) * w1
+                o == anusOff -> 180.0 - w1 / 2.0
+                else -> 180.0 + w1 / 2.0 + (o - anusOff - 1) * w2
+            }
+        }
+        /** Width of a nakshatra's cell (w1 in the mouth->anus half, w2 after). */
+        fun cellWidth(n28: Int) = if (off(n28) <= anusOff) w1 else w2
+        /** Sweep of a contiguous run of nakshatras (a group or a part). */
+        fun spanSweep(numbers: List<Int>): Double {
+            val start = cellStart(numbers.first())
+            val end = cellStart(numbers.last()) + cellWidth(numbers.last())
+            return ((end - start) % 360.0 + 360.0) % 360.0
+        }
         // (markerAngle removed in v1.8.42 — no markers or Moon rings are
         // drawn on the wheel any more, so no longitude-to-angle mapping
         // for markers is needed. The true-nakshatra anchoring logic is
@@ -635,9 +671,9 @@ private fun RahuKalamWheel(
         // Abhijit), each showing its syllable — e.g. Magha: မ မိ မု မေ.
         val padaR = R * 0.962f
         val padaW = R * 0.05f
-        val cellW = 360.0 / 28.0
         for (n in 1..28) {
             val start = cellStart(n)
+            val cellW = cellWidth(n)
             val count = RahuKalam.padaCount(n)
             for (p in 0 until count) {
                 val pStart = start + p * cellW / count
@@ -679,7 +715,7 @@ private fun RahuKalamWheel(
             val start = cellStart(n)
             drawArc(
                 color = coverYellow, startAngle = (start - 90f).toFloat(),
-                sweepAngle = 360f / 28f, useCenter = false,
+                sweepAngle = cellWidth(n).toFloat(), useCenter = false,
                 topLeft = Offset(cx - outerR, cy - outerR),
                 size = Size(outerR * 2, outerR * 2),
                 style = Stroke(width = outerW)
@@ -714,7 +750,7 @@ private fun RahuKalamWheel(
         RahuKalam.dasaggaGroups(wheel).forEach { group ->
             val first = group.numbers.first()
             val start = cellStart(first)
-            val sweep = group.numbers.size * 360.0 / 28.0
+            val sweep = spanSweep(group.numbers)
             val end = start + sweep
             val path = androidx.compose.ui.graphics.Path().apply {
                 // Outer arc (yellow-ring inner radius).
@@ -755,7 +791,7 @@ private fun RahuKalamWheel(
         wheel.parts.forEach { entry ->
             val first = entry.numbers.first()
             val start = cellStart(first)
-            val sweep = entry.numbers.size * 360.0 / 28.0
+            val sweep = spanSweep(entry.numbers)
             val end = start + sweep
             val path = androidx.compose.ui.graphics.Path().apply {
                 moveTo(cx, cy)
@@ -784,7 +820,7 @@ private fun RahuKalamWheel(
         wheel.parts.forEach { entry ->
             val first = entry.numbers.first()
             val start = cellStart(first)
-            val sweep = entry.numbers.size * 360.0 / 28.0
+            val sweep = spanSweep(entry.numbers)
             val mid = norm360(start + sweep / 2.0)
             val label = partLabels[entry.part] ?: return@forEach
             val labelR = D * 0.48f
