@@ -64,7 +64,7 @@ import kotlin.math.sin
  * မြန်မာ့ရိုးရာ သယောဒယ ရာဟုကာလ (Vol. 2). One wheel style, the book
  * cover itself, 100% identical — bright-yellow outer ring of 28
  * nakshatras, pink Dasagga group ring, blue group segments, yellow
- * diamond divided into the 6 Sayagyi parts, red centre dot. Rotated so
+ * diamond divided into the 6 Sayadaw parts, red centre dot. Rotated so
  * the mouth's nakshatra is centred at the
  * top, as the cover shows it. (The ZarTarPro concentric-ring style was
  * removed in v1.8.27 at the author's order — book cover only.)
@@ -413,7 +413,7 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
 
         // Planets: the displayed set (ဇာတာ or လက်ရှိ, following the toggle),
         // one line per planet — ဂြိုလ် | နက္ခတ် | ပါဒ | သရ | အပိုင်း | ဒသဂ္ဂ
-        // (author's format; အပိုင်း = which of the 6 Sayagyi parts the
+        // (author's format; အပိုင်း = which of the 6 Sayadaw parts the
         // planet's nakshatra falls in; ဒသဂ္ဂ = which of the 10 Dasagga
         // groups it falls in, e.g. နိဖ္ဖလ).
         item {
@@ -450,7 +450,7 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                         "Sun", "Moon", "Mars", "Mercury", "Jupiter",
                         "Venus", "Saturn", "Rahu", "Ketu"
                     )
-                    val partGroups = RahuKalam.dasaggaGroups(displayWheel.mouthStart28)
+                    val partGroups = RahuKalam.dasaggaGroups(displayWheel)
                     order.forEachIndexed { idx, name ->
                         val lon = displayByName[name]
                         val (n28, pada) = if (lon == null) 0 to 0 else RahuKalam.padaOf(lon)
@@ -505,7 +505,7 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                             style = MaterialTheme.typography.bodyMedium)
                     }
                     HorizontalDivider()
-                    val displayGroups = RahuKalam.dasaggaGroups(displayWheel.mouthStart28)
+                    val displayGroups = RahuKalam.dasaggaGroups(displayWheel)
                     displayGroups.forEachIndexed { gIdx, group ->
                         // One row per nakshatra (author's order): 3 nakshatras
                         // = 3 rows; each nakshatra's 4 သရ sit on its own row.
@@ -561,7 +561,7 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
  * the numerals, v1.8.30 at the author's order),
  * blue Dasagga group segments (one per group, names along the arc —
  * the pink group ring was removed in v1.8.43, it repeated the names),
- * light-green ground, a yellow diamond divided into the 6 Sayagyi
+ * light-green ground, a yellow diamond divided into the 6 Sayadaw
  * parts (mouth pink triangle at the top, anus pink triangle at the
  * bottom, head left, chest top-right, belly bottom-right, tail
  * bottom-left), and a red centre dot. (The cover's pink မော / ဇီဝ
@@ -711,7 +711,7 @@ private fun RahuKalamWheel(
         // The pink group ring was removed in v1.8.43 (group names repeated
         // there and in these segments), so the segments now extend out to
         // the yellow ring's inner edge.
-        RahuKalam.dasaggaGroups(wheel.mouthStart28).forEach { group ->
+        RahuKalam.dasaggaGroups(wheel).forEach { group ->
             val first = group.numbers.first()
             val start = cellStart(first)
             val sweep = group.numbers.size * 360.0 / 28.0
@@ -743,7 +743,7 @@ private fun RahuKalamWheel(
             )
         }
 
-        // ---- Diamond: 6 Sayagyi parts (wedges from the centre) ----
+        // ---- Diamond: 6 Sayadaw parts (wedges from the centre) ----
         val partColors = mapOf(
             RahuKalam.WheelPart.HEAD to diamondYellow,
             RahuKalam.WheelPart.MOUTH to trianglePink,

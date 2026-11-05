@@ -1,7 +1,7 @@
 package com.vedicastrology.app.engine
 
 /**
- * Burmese Rahu Kalam — Sayagyi (ဆရာကြီး) wheel, from the book
+ * Burmese Rahu Kalam — Sayadaw (သယောဒယ) wheel, from the book
  * မြန်မာ့ရိုးရာ သယောဒယ ရာဟုကာလ (Vol. 2).
  *
  * Pure Kotlin, no Android imports, so the logic stays testable like
@@ -26,17 +26,17 @@ package com.vedicastrology.app.engine
  *    the head with the mouth at offset 7 — the author's word corrects
  *    this: Rahu's nakshatra IS the mouth.)
  *  - The daily reading uses the CURRENT Moon: day 1 = today, day 2 =
- *    tomorrow. General day-2 rule (book, Sayagyi): when the Moon
+ *    tomorrow. General day-2 rule (book, Sayadaw): when the Moon
  *    (day 2) is in a chest / belly / anus nakshatra, work succeeds and
  *    marriage is favourable; in a tail / head / mouth nakshatra, work
  *    meets obstacles and marriage does not hold.
  *
  * Verified against the author's own chart (Rahu natal = Swati, 15):
- * mouth 15 (Swati, ဇီဝ), chest 16–22, belly 23–28, anus 1 (Ashwini,
- * ဂူဒ — Ketu is in Bharani 2, one off by the Abhijit shift, see note
- * in sayagyiWheel), tail 2–7, head 8–14. His natal Moon (Shravana,
- * 23) falls in the belly; his Nama nakshatra (Magha, 10) falls in
- * the head.
+ * mouth 15 (Swati, ဇီဝ), chest 16–22, belly 23–28,1, anus 2
+ * (Bharani, ဂူဒ = Ketu's nakshatra — the anus is anchored to Ketu,
+ * not to a fixed offset 14; Abhijit makes the count 15 here),
+ * tail 3–8, head 9–14. His natal Moon (Shravana, 23) falls in the
+ * belly; his Nama nakshatra (Magha, 10) falls in the head.
  */
 object RahuKalam {
 
@@ -44,7 +44,7 @@ object RahuKalam {
     private const val ABHIJIT_START = 276.0 + 40.0 / 60.0
 
     /**
-     * The six body parts of the Sayagyi wheel, in cycle order starting
+     * The six body parts of the Sayadaw wheel, in cycle order starting
      * at the mouth. The wheel is anchored at the MOUTH: the mouth
      * (ဇီဝ) IS the nakshatra Rahu occupies, and the anus (ဂူဒ) IS the
      * nakshatra Ketu occupies — the author's rule 2026-11-05
@@ -65,7 +65,7 @@ object RahuKalam {
     /** One part of a built wheel: the part plus its nakshatra numbers (1-28). */
     data class WheelPartEntry(val part: WheelPart, val numbers: List<Int>)
 
-    /** A built Sayagyi wheel: Rahu's nakshatra (1-28) is the mouth (ဇီဝ). */
+    /** A built Sayadaw wheel: Rahu's nakshatra (1-28) is the mouth (ဇီဝ). */
     data class SayagyiWheel(val mouthStart28: Int, val parts: List<WheelPartEntry>) {
         /** Which part contains 28-nakshatra number [n28] (1-28). */
         fun partOf(n28: Int): WheelPart =
@@ -100,27 +100,30 @@ object RahuKalam {
     }
 
     /**
-     * Build the Sayagyi wheel from Rahu's sidereal longitude.
+     * Build the Sayadaw wheel from Rahu's sidereal longitude.
      * The MOUTH (ဇီဝ) is the nakshatra Rahu occupies; the ANUS (ဂူဒ)
-     * is the nakshatra Ketu occupies, 14 nakshatras = 180° away.
-     * The rest follow in order from the mouth.
+     * is the nakshatra Ketu occupies — anchored to Ketu, NOT to a
+     * fixed offset 14. Ketu is always exactly 180° from Rahu, but
+     * because Abhijit is short (3°20') the count from mouth to Ketu
+     * can be 14 or 15: the author's natal chart (mouth Swati 15,
+     * Ketu Bharani 2) is offset 15, so a fixed offset 14 wrongly put
+     * the anus at Ashwini 1 and Ketu in the tail (fixed 2026-11-06).
+     * CHEST is always 7 (offsets 1-7) and TAIL always 6 (first 6
+     * after the anus); BELLY (offsets 8..d-1) and HEAD (offsets
+     * d+7..27) absorb the ±1, where d is the anus offset (14 or 15).
      */
     fun sayagyiWheel(natalRahuLon: Double): SayagyiWheel {
         val mouthStart = nakshatra28(natalRahuLon)
-        // Offset of each part's first nakshatra from the mouth start.
-        val offsets = mapOf(
-            WheelPart.MOUTH to 0,
-            WheelPart.CHEST to 1,
-            WheelPart.BELLY to 8,
-            WheelPart.ANUS to 14,
-            WheelPart.TAIL to 15,
-            WheelPart.HEAD to 21
+        val ketuN28 = nakshatra28(natalRahuLon + 180.0)
+        val d = (ketuN28 - mouthStart + 28) % 28  // anus offset: 14 or 15
+        val parts = listOf(
+            WheelPartEntry(WheelPart.MOUTH, listOf(mouthStart)),
+            WheelPartEntry(WheelPart.CHEST, (1..7).map { wrap28(mouthStart + it) }),
+            WheelPartEntry(WheelPart.BELLY, (8 until d).map { wrap28(mouthStart + it) }),
+            WheelPartEntry(WheelPart.ANUS, listOf(ketuN28)),
+            WheelPartEntry(WheelPart.TAIL, (1..6).map { wrap28(ketuN28 + it) }),
+            WheelPartEntry(WheelPart.HEAD, ((d + 7) until 28).map { wrap28(mouthStart + it) })
         )
-        val parts = WheelPart.entries.map { part ->
-            val start = wrap28(mouthStart + (offsets[part] ?: 0))
-            val numbers = (0 until part.count).map { step -> wrap28(start + step) }
-            WheelPartEntry(part, numbers)
-        }
         return SayagyiWheel(mouthStart, parts)
     }
 
@@ -128,7 +131,7 @@ object RahuKalam {
 
     /**
      * The ten Dasagga (ဒသဂ္ဂ) groups. They are NOT fixed nakshatras —
-     * they are subdivisions of the Sayagyi parts, defined by offsets
+     * they are subdivisions of the Sayadaw parts, defined by offsets
      * from the MOUTH (Rahu's nakshatra), so they shift with the wheel
      * and always coincide with the parts (the author's rule 2026-11-05,
      * ထပ်တူကျ): the mouth (offset 0) IS the ဇီဝ group (one nakshatra),
@@ -151,25 +154,32 @@ object RahuKalam {
      */
     data class DasaggaGroup(val mm: String, val numbers: List<Int>)
 
-    /** Dasagga group offsets from the mouth (Rahu's nakshatra). */
-    private val DASAGGA_GROUP_OFFSETS = listOf(
-        "ဇီဝ" to (0..0),
-        "ပုပ္ဖိတ" to (1..3),
-        "ဖလိတ" to (4..7),
-        "နိဖ္ဖလ" to (8..10),
-        "ဇဋိတ" to (11..13),
-        "ဂူဒ" to (14..14),
-        "ရာဇဿ" to (15..17),
-        "ထမဿ" to (18..20),
-        "ဝုဒ္ဓ" to (21..24),
-        "မတ" to (25..27)
-    )
-
-    /** The ten Dasagga groups for a wheel whose mouth starts at [mouthStart28]. */
-    fun dasaggaGroups(mouthStart28: Int): List<DasaggaGroup> =
-        DASAGGA_GROUP_OFFSETS.map { (name, range) ->
-            DasaggaGroup(name, range.map { wrap28(mouthStart28 + it) })
-        }
+    /** The ten Dasagga groups for a built [wheel]. They are subdivisions
+     * of the wheel's parts, so they follow the anus anchor: ဇီဝ IS the
+     * mouth, ဂူဒ IS the anus (Ketu's nakshatra). CHEST splits 3+4
+     * (ပုပ္ဖိတ+ဖလိတ), BELLY 3+rest (နိဖ္ဖလ+ဇဋိတ), TAIL 3+3
+     * (ရာဇဿ+ထမဿ), HEAD 4+rest (ဝုဒ္ဓ+မတ). When the anus offset
+     * is 15 (Abhijit shift), BELLY has 7 so ဇဋိတ has 4, and HEAD has
+     * 6 so မတ has 2 — the standard 3+3 is the offset-14 case. */
+    fun dasaggaGroups(wheel: SayagyiWheel): List<DasaggaGroup> {
+        val byPart = wheel.parts.associate { it.part to it.numbers }
+        val chest = byPart[WheelPart.CHEST] ?: emptyList()
+        val belly = byPart[WheelPart.BELLY] ?: emptyList()
+        val tail = byPart[WheelPart.TAIL] ?: emptyList()
+        val head = byPart[WheelPart.HEAD] ?: emptyList()
+        return listOf(
+            DasaggaGroup("ဇီဝ", byPart[WheelPart.MOUTH] ?: emptyList()),
+            DasaggaGroup("ပုပ္ဖိတ", chest.take(3)),
+            DasaggaGroup("ဖလိတ", chest.drop(3)),
+            DasaggaGroup("နိဖ္ဖလ", belly.take(3)),
+            DasaggaGroup("ဇဋိတ", belly.drop(3)),
+            DasaggaGroup("ဂူဒ", byPart[WheelPart.ANUS] ?: emptyList()),
+            DasaggaGroup("ရာဇဿ", tail.take(3)),
+            DasaggaGroup("ထမဿ", tail.drop(3)),
+            DasaggaGroup("ဝုဒ္ဓ", head.take(4)),
+            DasaggaGroup("မတ", head.drop(4))
+        )
+    }
 
     /**
      * Pada (သရ) syllables per nakshatra (28-system; index = n28 - 1).
@@ -266,7 +276,7 @@ object RahuKalam {
         return if (d == null) "အဘိဇိတ်" else burmeseNum(d)
     }
 
-    /** Day-2 general verdict for a Moon part (book's Sayagyi rule). */
+    /** Day-2 general verdict for a Moon part (book's Sayadaw rule). */
     enum class Verdict(val mm: String, val good: Boolean) {
         GOOD("ကောင်း", true),
         OBSTACLE("အခက်အခဲ", false)
