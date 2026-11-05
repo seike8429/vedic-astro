@@ -34,7 +34,6 @@ import com.vedicastrology.app.engine.BirthData
 import com.vedicastrology.app.engine.ChartResult
 import com.vedicastrology.app.engine.Ephemeris
 import com.vedicastrology.app.engine.RahuKalam
-import com.vedicastrology.app.engine.SIGNS
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -42,7 +41,6 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 import kotlin.math.cos
-import kotlin.math.floor
 import kotlin.math.sin
 
 /**
@@ -216,10 +214,6 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                 showTransit = showTransit,
                 moon1N28 = moon1N28,
                 moon2N28 = moon2N28,
-                chartName = chartName,
-                dateLabel = "${birth.day}.${birth.month}.${birth.year} " +
-                    "${birth.hour}:${birth.minute}:00",
-                placeLabel = birth.placeName,
                 modifier = Modifier.fillMaxWidth().aspectRatio(1f)
             )
             Spacer(Modifier.height(12.dp))
@@ -436,15 +430,20 @@ private fun TableRow(label: String, value: String, boldValue: Boolean = false) {
 }
 
 /**
- * Circular wheel, ZarTarPro style (outside -> in): corner planet
- * longitudes, cream outer ring of 28 nakshatras (name + Burmese
- * numeral, pada ticks), coloured planet-marker circles with Burmese
- * glyphs, Dasagga group ring (10 coloured arcs, names along the arc),
- * Sayagyi body-part ring (6 coloured arcs, names along the arc),
- * inner nakshatra ring (Burmese numerals), centre with app name,
- * birth date+time, a 6-part grid, "Sidereal LAHIRI" and place.
- * Angles: nakshatra n occupies [(n-1) * 360/28, n * 360/28),
- * measured clockwise from the top.
+ * Circular wheel, EXACTLY like the book cover
+ * (မြန်မာ့ရိုးရာ သရေခေတ္တရာဟုကာလ, Vol. 2, cover), outside -> in:
+ * bright-yellow outer ring of 28 nakshatras (Burmese numeral per cell),
+ * mauve-pink Dasagga group ring (10 groups, names along the arc),
+ * blue Dasagga group segments (one per group, names along the arc),
+ * light-green ground, a yellow diamond divided into the 6 Sayagyi
+ * parts (mouth pink triangle at the top, anus pink triangle at the
+ * bottom, head left, chest top-right, belly bottom-right, hips
+ * bottom-left), a red centre dot, and pink မော / ဇီဝ boxes at the
+ * left / right vertices. Planet markers (natal filled, now hollow,
+ * with their pada syllable သရ) sit in the outer nakshatra ring.
+ * The wheel is ROTATED so the mouth's nakshatra is centred at the
+ * top — exactly as the cover shows it (mouth top, head left) — for
+ * any natal chart. Angles are clockwise from the top.
  */
 @Composable
 private fun RahuKalamWheel(
@@ -454,129 +453,257 @@ private fun RahuKalamWheel(
     showTransit: Boolean,
     moon1N28: Int,
     moon2N28: Int,
-    chartName: String,
-    dateLabel: String,
-    placeLabel: String,
     modifier: Modifier = Modifier
 ) {
     Canvas(modifier = modifier) {
         val cx = size.width / 2f
         val cy = size.height / 2f
         val R = size.minDimension / 2f
-        val cream = Color(0xFFFFF8E1)
-        val creamDark = Color(0xFFFFF3C4)
+        val D = R * 0.78f
+        // Cover colours.
+        val coverGreen = Color(0xFFC5E1A5)
+        val coverYellow = Color(0xFFFFEB3B)
+        val coverPink = Color(0xFFD69AAE)
+        val coverBlue = Color(0xFF8EA6DB)
+        val diamondYellow = Color(0xFFFFF9A8)
+        val trianglePink = Color(0xFFF8BBD0)
+        val centreRed = Color(0xFFC62828)
 
         fun rad(degClockwiseFromTop: Double) =
             Math.toRadians(degClockwiseFromTop - 90.0)
         fun px(r: Float, deg: Double) = cx + (r * cos(rad(deg))).toFloat()
         fun py(r: Float, deg: Double) = cy + (r * sin(rad(deg))).toFloat()
-        fun cellMid(n28: Int) = (n28 - 1) * 360.0 / 28.0 + 360.0 / 56.0
+        fun norm360(a: Double) = ((a % 360.0) + 360.0) % 360.0
 
-        // ---- Corner planet longitudes (ZarTarPro style) ----
-        fun planetLabel(lon: Double): String {
-            val sign = SIGNS[((lon / 30.0).toInt()) % 12]
-            val within = lon % 30.0
-            val deg = floor(within).toInt()
-            val min = floor((within - deg) * 60.0).toInt()
-            return "${sign.mm} $deg°$min'"
-        }
-        // Corner longitudes follow the wheel mode (natal or now).
-        val lonByName = if (showTransit) transitPlanets.toMap() else natalPlanets.toMap()
-        fun cornerLine(name: String): String? {
-            val lon = lonByName[name] ?: return null
-            return "${PLANET_GLYPHS[name]} ${planetLabel(lon)}"
-        }
-        drawContext.canvas.nativeCanvas.apply {
-            val paint = android.graphics.Paint().apply {
-                color = android.graphics.Color.BLACK
-                textSize = size.minDimension * 0.021f
-                isFakeBoldText = true
-            }
-            val lineH = paint.textSize * 1.35f
-            val x0 = size.minDimension * 0.015f
-            val x1 = size.width - size.minDimension * 0.015f
-            // Top-left: Sun, Moon, Mars. Top-right: Mercury, Jupiter.
-            // Bottom-left: Venus, Saturn. Bottom-right: Rahu, Ketu.
-            val tl = listOf("Sun", "Moon", "Mars").mapNotNull(::cornerLine)
-            val tr = listOf("Mercury", "Jupiter").mapNotNull(::cornerLine)
-            val bl = listOf("Venus", "Saturn").mapNotNull(::cornerLine)
-            val br = listOf("Rahu", "Ketu").mapNotNull(::cornerLine)
-            paint.textAlign = android.graphics.Paint.Align.LEFT
-            tl.forEachIndexed { i, s -> drawText(s, x0, lineH * (i + 1), paint) }
-            bl.forEachIndexed { i, s ->
-                drawText(s, x0, size.height - lineH * (bl.size - i), paint)
-            }
-            paint.textAlign = android.graphics.Paint.Align.RIGHT
-            tr.forEachIndexed { i, s -> drawText(s, x1, lineH * (i + 1), paint) }
-            br.forEachIndexed { i, s ->
-                drawText(s, x1, size.height - lineH * (br.size - i), paint)
-            }
+        // Rotation: the mouth's nakshatra is centred at the top (0 deg),
+        // exactly as the cover shows it.
+        val mouthN28 = wheel.parts
+            .first { it.part == RahuKalam.WheelPart.MOUTH }.numbers.first()
+        val mouthCentre = (mouthN28 - 1) * 360.0 / 28.0 + 360.0 / 56.0
+        val rot = -mouthCentre
+        /** Angle (clockwise from top, rotated frame) of a longitude. */
+        fun rotAngle(lon: Double) = norm360(lon + rot)
+        /** Angle (rotated frame) of a nakshatra number's cell centre. */
+        fun cellAngle(n28: Int) =
+            norm360((n28 - 1) * 360.0 / 28.0 + 360.0 / 56.0 + rot)
+        /** Angle (rotated frame) of a nakshatra number's cell start. */
+        fun cellStart(n28: Int) = norm360((n28 - 1) * 360.0 / 28.0 + rot)
+        /** Distance from the centre to the diamond's edge at an angle. */
+        fun diamondR(degClockwiseFromTop: Double): Float {
+            val t = Math.toRadians(degClockwiseFromTop)
+            return (D / (kotlin.math.abs(sin(t)) + kotlin.math.abs(cos(t)))).toFloat()
         }
 
-        // ---- Outer ring: 28 nakshatra cells (cream, name + numeral) ----
-        val outerR = R * 0.84f
-        val outerW = R * 0.12f
+        // ---- Green ground (whole wheel) ----
+        drawCircle(color = coverGreen, radius = R * 0.97f, center = Offset(cx, cy))
+
+        // ---- Outer yellow ring: 28 nakshatra cells (Burmese numeral) ----
+        val outerR = R * 0.935f
+        val outerW = R * 0.07f
         for (n in 1..28) {
-            val start = (n - 1) * 360f / 28f - 90f
+            val start = cellStart(n)
             drawArc(
-                color = cream, startAngle = start, sweepAngle = 360f / 28f,
-                useCenter = false,
+                color = coverYellow, startAngle = (start - 90f).toFloat(),
+                sweepAngle = 360f / 28f, useCenter = false,
                 topLeft = Offset(cx - outerR, cy - outerR),
                 size = Size(outerR * 2, outerR * 2),
                 style = Stroke(width = outerW)
             )
+            // Radial divider at the cell start.
+            drawLine(
+                color = Color.Black,
+                start = Offset(px(outerR - outerW / 2f, start), py(outerR - outerW / 2f, start)),
+                end = Offset(px(outerR + outerW / 2f, start), py(outerR + outerW / 2f, start)),
+                strokeWidth = 2f
+            )
+            // Burmese numeral, along the arc.
+            drawArcLabel(
+                RahuKalam.burmeseNum(n), cellAngle(n), R * 0.955f,
+                size.minDimension * 0.018f, cx, cy, bold = false
+            )
         }
-        // Dividers + pada ticks (3 per cell) on the outer ring.
-        for (n in 1..28) {
-            val base = (n - 1) * 360.0 / 28.0
-            for (p in 0..3) {
-                val deg = base + p * 360.0 / 28.0 / 4.0
-                val isBoundary = p == 0
-                val r1 = outerR - outerW / 2f
-                val r2 = outerR + outerW / 2f
-                drawLine(
-                    color = if (isBoundary) Color.Black else Color(0xFFBDBDBD),
-                    start = Offset(px(r1, deg), py(r1, deg)),
-                    end = Offset(px(r2, deg), py(r2, deg)),
-                    strokeWidth = if (isBoundary) 2f else 1f
-                )
+        // Outer + inner boundary circles of the yellow ring.
+        drawCircle(
+            color = Color.Black, radius = R * 0.97f, center = Offset(cx, cy),
+            style = Stroke(width = 2f)
+        )
+        drawCircle(
+            color = Color.Black, radius = R * 0.90f, center = Offset(cx, cy),
+            style = Stroke(width = 2f)
+        )
+
+        // ---- Pink Dasagga group ring (10 groups, names along the arc) ----
+        val groupR = R * 0.865f
+        val groupW = R * 0.07f
+        RahuKalam.DASAGGA_GROUPS.forEach { group ->
+            val first = group.numbers.first()
+            val start = cellStart(first)
+            val sweep = group.numbers.size * 360.0 / 28.0
+            drawArc(
+                color = coverPink, startAngle = (start - 90f).toFloat(),
+                sweepAngle = sweep.toFloat(), useCenter = false,
+                topLeft = Offset(cx - groupR, cy - groupR),
+                size = Size(groupR * 2, groupR * 2),
+                style = Stroke(width = groupW)
+            )
+            drawLine(
+                color = Color.Black,
+                start = Offset(px(groupR - groupW / 2f, start), py(groupR - groupW / 2f, start)),
+                end = Offset(px(groupR + groupW / 2f, start), py(groupR + groupW / 2f, start)),
+                strokeWidth = 2f
+            )
+            val mid = norm360(start + sweep / 2.0)
+            drawArcLabel(
+                group.mm, mid, groupR, size.minDimension * 0.020f, cx, cy, bold = true
+            )
+        }
+        drawCircle(
+            color = Color.Black, radius = R * 0.83f, center = Offset(cx, cy),
+            style = Stroke(width = 2f)
+        )
+
+        // ---- Blue Dasagga group segments (diamond edge .. pink ring) ----
+        RahuKalam.DASAGGA_GROUPS.forEach { group ->
+            val first = group.numbers.first()
+            val start = cellStart(first)
+            val sweep = group.numbers.size * 360.0 / 28.0
+            val end = start + sweep
+            val path = androidx.compose.ui.graphics.Path().apply {
+                // Outer arc (pink-ring radius).
+                val steps = maxOf(4, (sweep / 2.0).toInt())
+                for (i in 0..steps) {
+                    val a = start + sweep * i / steps
+                    val p = Offset(px(R * 0.83f, a), py(R * 0.83f, a))
+                    if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y)
+                }
+                // Inner boundary (diamond edge), back to the start.
+                for (i in steps downTo 0) {
+                    val a = start + sweep * i / steps
+                    val rr = diamondR(a)
+                    val p = Offset(px(rr, a), py(rr, a))
+                    lineTo(p.x, p.y)
+                }
+                close()
             }
-            // Name + Burmese numeral, horizontal at the cell midpoint.
-            val mid = cellMid(n)
-            val tx = px(outerR, mid)
-            val ty = py(outerR, mid)
+            drawPath(path = path, color = coverBlue)
+            drawPath(path = path, color = Color.Black, style = Stroke(width = 2f))
+            // Group name, along the arc, midway between diamond and ring.
+            val mid = norm360(start + sweep / 2.0)
+            val midR = (R * 0.83f + diamondR(mid)) / 2f
+            drawArcLabel(
+                group.mm, mid, midR, size.minDimension * 0.020f, cx, cy, bold = true
+            )
+        }
+
+        // ---- Diamond: 6 Sayagyi parts (wedges from the centre) ----
+        val partColors = mapOf(
+            RahuKalam.WheelPart.HEAD to diamondYellow,
+            RahuKalam.WheelPart.MOUTH to trianglePink,
+            RahuKalam.WheelPart.CHEST to diamondYellow,
+            RahuKalam.WheelPart.BELLY to diamondYellow,
+            RahuKalam.WheelPart.ANUS to trianglePink,
+            RahuKalam.WheelPart.HIPS to diamondYellow
+        )
+        wheel.parts.forEach { entry ->
+            val first = entry.numbers.first()
+            val start = cellStart(first)
+            val sweep = entry.numbers.size * 360.0 / 28.0
+            val end = start + sweep
+            val path = androidx.compose.ui.graphics.Path().apply {
+                moveTo(cx, cy)
+                val steps = maxOf(4, (sweep / 2.0).toInt())
+                for (i in 0..steps) {
+                    val a = start + sweep * i / steps
+                    val rr = diamondR(a)
+                    val p = Offset(px(rr, a), py(rr, a))
+                    lineTo(p.x, p.y)
+                }
+                close()
+            }
+            drawPath(path = path, color = partColors[entry.part] ?: diamondYellow)
+            drawPath(path = path, color = Color.Black, style = Stroke(width = 2f))
+        }
+
+        // ---- Part labels (mouth/anus vertical, the rest horizontal) ----
+        val partLabels = mapOf(
+            RahuKalam.WheelPart.HEAD to "ဦးခေါင်း",
+            RahuKalam.WheelPart.MOUTH to "ခံတွင်း",
+            RahuKalam.WheelPart.CHEST to "ရင်",
+            RahuKalam.WheelPart.BELLY to "ဝမ်း",
+            RahuKalam.WheelPart.ANUS to "စအို",
+            RahuKalam.WheelPart.HIPS to "အပြီး"
+        )
+        wheel.parts.forEach { entry ->
+            val first = entry.numbers.first()
+            val start = cellStart(first)
+            val sweep = entry.numbers.size * 360.0 / 28.0
+            val mid = norm360(start + sweep / 2.0)
+            val label = partLabels[entry.part] ?: return@forEach
+            val labelR = D * 0.48f
+            val lx = px(labelR, mid)
+            val ly = py(labelR, mid)
+            val vertical = entry.part == RahuKalam.WheelPart.MOUTH ||
+                entry.part == RahuKalam.WheelPart.ANUS
             drawContext.canvas.nativeCanvas.apply {
-                val namePaint = android.graphics.Paint().apply {
+                save()
+                if (vertical) rotate(90f, lx, ly)
+                val paint = android.graphics.Paint().apply {
                     color = android.graphics.Color.BLACK
-                    textSize = size.minDimension * 0.021f
+                    textSize = size.minDimension * 0.024f
                     textAlign = android.graphics.Paint.Align.CENTER
+                    isFakeBoldText = true
                 }
-                val numPaint = android.graphics.Paint().apply {
-                    color = android.graphics.Color.DKGRAY
-                    textSize = size.minDimension * 0.018f
-                    textAlign = android.graphics.Paint.Align.CENTER
-                }
-                drawText(RahuKalam.name28(n), tx, ty - namePaint.textSize * 0.15f, namePaint)
-                drawText(
-                    RahuKalam.burmeseNum(n), tx, ty + numPaint.textSize * 1.15f, numPaint
-                )
+                drawText(label, lx, ly + paint.textSize / 3f, paint)
+                restore()
             }
         }
 
-        // ---- Planet markers: natal (filled) + now/transit (hollow) ----
-        // Each marker carries its pada syllable (သရ) just clockwise of it.
-        val natalR = R * 0.73f
-        fun markerPos(r: Float, n28: Int): Offset {
-            val mid = cellMid(n28)
-            return Offset(px(r, mid), py(r, mid))
+        // ---- Centre red dot ----
+        drawCircle(color = centreRed, radius = R * 0.025f, center = Offset(cx, cy))
+        drawCircle(
+            color = Color.Black, radius = R * 0.025f, center = Offset(cx, cy),
+            style = Stroke(width = 2f)
+        )
+
+        // ---- Pink မော / ဇီဝ boxes at the left / right vertices ----
+        fun vertexBox(angleDeg: Double, text: String) {
+            val vx = px(D, angleDeg)
+            val vy = py(D, angleDeg)
+            val bw = size.minDimension * 0.075f
+            val bh = size.minDimension * 0.045f
+            drawRect(
+                color = trianglePink,
+                topLeft = Offset(vx - bw / 2f, vy - bh / 2f),
+                size = Size(bw, bh)
+            )
+            drawRect(
+                color = Color.Black,
+                topLeft = Offset(vx - bw / 2f, vy - bh / 2f),
+                size = Size(bw, bh), style = Stroke(width = 2f)
+            )
+            drawContext.canvas.nativeCanvas.apply {
+                val paint = android.graphics.Paint().apply {
+                    color = android.graphics.Color.BLACK
+                    textSize = size.minDimension * 0.024f
+                    textAlign = android.graphics.Paint.Align.CENTER
+                    isFakeBoldText = true
+                }
+                drawText(text, vx, vy + paint.textSize / 3f, paint)
+            }
         }
-        /** Draw one marker + its သရ (offset clockwise along the arc). */
-        fun planetMarker(name: String, lon: Double, r: Float, filled: Boolean) {
-            val n28 = RahuKalam.nakshatra28(lon)
-            val pos = markerPos(r, n28)
+        vertexBox(270.0, "မော")
+        vertexBox(90.0, "ဇီဝ")
+
+        // ---- Planet markers in the outer nakshatra ring ----
+        // One set only (no overlap): natal (filled) or now (hollow).
+        val displayPlanets = if (showTransit) transitPlanets else natalPlanets
+        val markerR = R * 0.925f
+        displayPlanets.forEach { (name, lon) ->
+            val ang = rotAngle(lon)
+            val pos = Offset(px(markerR, ang), py(markerR, ang))
             val color = PLANET_COLORS[name] ?: Color.Gray
-            val radius = size.minDimension * 0.022f
-            if (filled) {
+            val radius = size.minDimension * 0.012f
+            if (!showTransit) {
                 drawCircle(color = color, radius = radius, center = pos)
                 drawCircle(
                     color = Color.White, radius = radius, center = pos,
@@ -586,22 +713,21 @@ private fun RahuKalamWheel(
                 drawCircle(color = Color.White, radius = radius, center = pos)
                 drawCircle(
                     color = color, radius = radius, center = pos,
-                    style = Stroke(width = 3f)
+                    style = Stroke(width = 2.5f)
                 )
             }
             drawContext.canvas.nativeCanvas.apply {
                 val glyphPaint = android.graphics.Paint().apply {
-                    this.color = if (filled) {
+                    this.color = if (!showTransit) {
                         android.graphics.Color.WHITE
                     } else {
-                        // Hollow (transit) marker: glyph in the planet colour.
                         android.graphics.Color.rgb(
                             (color.red * 255).toInt(),
                             (color.green * 255).toInt(),
                             (color.blue * 255).toInt()
                         )
                     }
-                    textSize = size.minDimension * 0.024f
+                    textSize = size.minDimension * 0.020f
                     textAlign = android.graphics.Paint.Align.CENTER
                     isFakeBoldText = true
                 }
@@ -610,13 +736,12 @@ private fun RahuKalamWheel(
                     pos.y + glyphPaint.textSize / 3f, glyphPaint
                 )
                 // သရ, just clockwise of the marker (tangent direction).
-                val mid = cellMid(n28)
-                val theta = Math.toRadians(mid)
-                val sx = pos.x + (R * 0.065f * cos(theta)).toFloat()
-                val sy = pos.y + (R * 0.065f * sin(theta)).toFloat()
+                val theta = Math.toRadians(ang)
+                val sx = pos.x + (R * 0.055f * cos(theta)).toFloat()
+                val sy = pos.y + (R * 0.055f * sin(theta)).toFloat()
                 val saraPaint = android.graphics.Paint().apply {
                     this.color = android.graphics.Color.BLACK
-                    textSize = size.minDimension * 0.017f
+                    textSize = size.minDimension * 0.016f
                     textAlign = android.graphics.Paint.Align.CENTER
                     isFakeBoldText = true
                 }
@@ -626,153 +751,31 @@ private fun RahuKalamWheel(
                 )
             }
         }
-        // One set only (no overlap): natal (filled) or now (hollow).
-        val displayPlanets = if (showTransit) transitPlanets else natalPlanets
-        displayPlanets.forEach { (name, lon) ->
-            planetMarker(name, lon, natalR, filled = !showTransit)
-        }
         // Current Moon day 1 (blue ring) / day 2 (green ring) — only in
         // လက်ရှိ mode, since day 1 / day 2 Moon is the current Moon.
         if (showTransit) {
             val transitMoonLon = transitPlanets.firstOrNull { it.first == "Moon" }?.second
             if (transitMoonLon != null) {
-                val pos = markerPos(natalR, RahuKalam.nakshatra28(transitMoonLon))
+                val pos = Offset(
+                    px(markerR, rotAngle(transitMoonLon)),
+                    py(markerR, rotAngle(transitMoonLon))
+                )
                 drawCircle(
-                    color = Color(0xFF1565C0), radius = size.minDimension * 0.029f,
+                    color = Color(0xFF1565C0), radius = size.minDimension * 0.019f,
                     center = pos, style = Stroke(width = 3f)
                 )
             }
-            fun moonRing(n28: Int, color: Color) {
-                val pos = markerPos(natalR, n28)
-                drawCircle(
-                    color = color, radius = size.minDimension * 0.029f, center = pos,
-                    style = Stroke(width = 3f)
-                )
-            }
-            moonRing(moon2N28, Color(0xFF2E7D32))
-        }
-
-        // ---- Dasagga group ring (10 coloured arcs, names along the arc) ----
-        val groupR = R * 0.58f
-        val groupW = R * 0.10f
-        RahuKalam.DASAGGA_GROUPS.forEachIndexed { idx, group ->
-            val first = group.numbers.first()
-            val start = (first - 1) * 360f / 28f - 90f
-            val sweep = group.numbers.size * 360f / 28f
-            drawArc(
-                color = GROUP_COLORS[idx % GROUP_COLORS.size],
-                startAngle = start, sweepAngle = sweep, useCenter = false,
-                topLeft = Offset(cx - groupR, cy - groupR),
-                size = Size(groupR * 2, groupR * 2),
-                style = Stroke(width = groupW)
+            val moon2Pos = Offset(
+                px(markerR, cellAngle(moon2N28)), py(markerR, cellAngle(moon2N28))
             )
-            // Divider at the group's first nakshatra.
-            drawLine(
-                color = Color.Black,
-                start = Offset(px(groupR - groupW / 2f, (first - 1) * 360.0 / 28.0),
-                    py(groupR - groupW / 2f, (first - 1) * 360.0 / 28.0)),
-                end = Offset(px(groupR + groupW / 2f, (first - 1) * 360.0 / 28.0),
-                    py(groupR + groupW / 2f, (first - 1) * 360.0 / 28.0)),
-                strokeWidth = 2f
-            )
-            drawArcLabel(
-                group.mm,
-                (first - 1) * 360.0 / 28.0 + group.numbers.size * 360.0 / 56.0,
-                groupR, size.minDimension * 0.022f, cx, cy, bold = true
+            drawCircle(
+                color = Color(0xFF2E7D32), radius = size.minDimension * 0.019f,
+                center = moon2Pos, style = Stroke(width = 3f)
             )
         }
-
-        // ---- Sayagyi body-part ring (6 coloured arcs, names along the arc) ----
-        val partR = R * 0.46f
-        val partW = R * 0.10f
-        wheel.parts.forEach { entry ->
-            val first = entry.numbers.first()
-            val start = (first - 1) * 360f / 28f - 90f
-            val sweep = entry.numbers.size * 360f / 28f
-            drawArc(
-                color = PART_COLORS[entry.part] ?: Color.LightGray,
-                startAngle = start, sweepAngle = sweep, useCenter = false,
-                topLeft = Offset(cx - partR, cy - partR),
-                size = Size(partR * 2, partR * 2),
-                style = Stroke(width = partW)
-            )
-            drawLine(
-                color = Color.Black,
-                start = Offset(px(partR - partW / 2f, (first - 1) * 360.0 / 28.0),
-                    py(partR - partW / 2f, (first - 1) * 360.0 / 28.0)),
-                end = Offset(px(partR + partW / 2f, (first - 1) * 360.0 / 28.0),
-                    py(partR + partW / 2f, (first - 1) * 360.0 / 28.0)),
-                strokeWidth = 2f
-            )
-            drawArcLabel(
-                entry.part.mm,
-                (first - 1) * 360.0 / 28.0 + entry.numbers.size * 360.0 / 56.0,
-                partR, size.minDimension * 0.024f, cx, cy, bold = true
-            )
-        }
-
-        // ---- Inner ring: 28 nakshatra cells (Burmese numerals) ----
-        val innerR = R * 0.35f
-        val innerW = R * 0.08f
-        for (n in 1..28) {
-            val start = (n - 1) * 360f / 28f - 90f
-            drawArc(
-                color = creamDark, startAngle = start, sweepAngle = 360f / 28f,
-                useCenter = false,
-                topLeft = Offset(cx - innerR, cy - innerR),
-                size = Size(innerR * 2, innerR * 2),
-                style = Stroke(width = innerW)
-            )
-            val mid = cellMid(n)
-            drawContext.canvas.nativeCanvas.apply {
-                val paint = android.graphics.Paint().apply {
-                    color = android.graphics.Color.BLACK
-                    textSize = size.minDimension * 0.019f
-                    textAlign = android.graphics.Paint.Align.CENTER
-                }
-                drawText(
-                    RahuKalam.burmeseNum(n), px(innerR, mid),
-                    py(innerR, mid) + paint.textSize / 3f, paint
-                )
-            }
-        }
-
-        // ---- Centre: app name, birth date+time, parts grid, Sidereal LAHIRI, place ----
-        val centerR = R * 0.30f
-        drawCircle(
-            color = Color(0xFFFFFDF5), radius = centerR, center = Offset(cx, cy)
-        )
-        drawCircle(
-            color = Color.Black, radius = centerR, center = Offset(cx, cy),
-            style = Stroke(width = 2f)
-        )
-        drawContext.canvas.nativeCanvas.apply {
-            val namePaint = android.graphics.Paint().apply {
-                color = android.graphics.Color.BLACK
-                textSize = size.minDimension * 0.028f
-                textAlign = android.graphics.Paint.Align.CENTER
-                isFakeBoldText = true
-            }
-            val subPaint = android.graphics.Paint().apply {
-                color = android.graphics.Color.BLACK
-                textSize = size.minDimension * 0.024f
-                textAlign = android.graphics.Paint.Align.CENTER
-            }
-            val smallPaint = android.graphics.Paint().apply {
-                color = android.graphics.Color.DKGRAY
-                textSize = size.minDimension * 0.020f
-                textAlign = android.graphics.Paint.Align.CENTER
-            }
-            drawText("ဗေဒင်", cx, cy - R * 0.235f, namePaint)
-            drawText(dateLabel, cx, cy - R * 0.165f, subPaint)
-            drawText("Sidereal LAHIRI", cx, cy + R * 0.195f, smallPaint)
-            if (placeLabel.isNotEmpty()) {
-                drawText(placeLabel, cx, cy + R * 0.245f, smallPaint)
-            }
-        }
-        drawCentreGrid(wheel, cx, cy, R)
     }
 }
+
 
 /** Draw text along an arc, upright (flipped on the bottom half). */
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawArcLabel(
@@ -795,75 +798,5 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawArcLabel(
         }
         drawText(text, x, y + paint.textSize / 3f, paint)
         restore()
-    }
-}
-
-/**
- * Centre grid: 6 columns (the Sayagyi parts, head first) x 8 rows
- * (header + up to 7 nakshatra numbers, Burmese numerals; Abhijit as X).
- */
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCentreGrid(
-    wheel: RahuKalam.SayagyiWheel, cx: Float, cy: Float, R: Float
-) {
-    val order = listOf(
-        RahuKalam.WheelPart.HEAD, RahuKalam.WheelPart.MOUTH,
-        RahuKalam.WheelPart.CHEST, RahuKalam.WheelPart.BELLY,
-        RahuKalam.WheelPart.ANUS, RahuKalam.WheelPart.HIPS
-    )
-    val headers = mapOf(
-        RahuKalam.WheelPart.HEAD to "ဦး", RahuKalam.WheelPart.MOUTH to "ခံ",
-        RahuKalam.WheelPart.CHEST to "ရင်", RahuKalam.WheelPart.BELLY to "ဝမ်း",
-        RahuKalam.WheelPart.ANUS to "စအို", RahuKalam.WheelPart.HIPS to "အပြီး"
-    )
-    val byPart = wheel.parts.associateBy { it.part }
-    val gridW = R * 0.52f
-    val gridH = R * 0.26f
-    val x0 = cx - gridW / 2f
-    val y0 = cy - gridH / 2f + R * 0.01f
-    val cellW = gridW / 6f
-    val cellH = gridH / 8f
-    // Outer border + dividers.
-    drawRect(
-        color = Color.Black, topLeft = Offset(x0, y0), size = Size(gridW, gridH),
-        style = Stroke(width = 1.5f)
-    )
-    for (c in 1 until 6) {
-        drawLine(
-            color = Color.Black, start = Offset(x0 + c * cellW, y0),
-            end = Offset(x0 + c * cellW, y0 + gridH), strokeWidth = 1f
-        )
-    }
-    for (r in 1 until 8) {
-        drawLine(
-            color = Color.Black, start = Offset(x0, y0 + r * cellH),
-            end = Offset(x0 + gridW, y0 + r * cellH), strokeWidth = 1f
-        )
-    }
-    drawContext.canvas.nativeCanvas.apply {
-        val headPaint = android.graphics.Paint().apply {
-            color = android.graphics.Color.BLACK
-            textSize = size.minDimension * 0.016f
-            textAlign = android.graphics.Paint.Align.CENTER
-            isFakeBoldText = true
-        }
-        val cellPaint = android.graphics.Paint().apply {
-            color = android.graphics.Color.BLACK
-            textSize = size.minDimension * 0.016f
-            textAlign = android.graphics.Paint.Align.CENTER
-        }
-        order.forEachIndexed { ci, part ->
-            val hx = x0 + (ci + 0.5f) * cellW
-            val hy = y0 + cellH * 0.5f + headPaint.textSize / 3f
-            drawText(headers[part] ?: "", hx, hy, headPaint)
-            val entry = byPart[part] ?: return@forEachIndexed
-            entry.numbers.forEachIndexed { ri, n28 ->
-                val tx = hx
-                val ty = y0 + (ri + 1.5f) * cellH + cellPaint.textSize / 3f
-                drawText(
-                    if (n28 == 22) "X" else RahuKalam.burmeseNum(n28),
-                    tx, ty, cellPaint
-                )
-            }
-        }
     }
 }
