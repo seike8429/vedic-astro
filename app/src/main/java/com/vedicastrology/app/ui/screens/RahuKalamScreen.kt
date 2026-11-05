@@ -411,54 +411,6 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
             Spacer(Modifier.height(12.dp))
         }
 
-        // Summary table.
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(4.dp)) {
-                    TableRow("ဇာတာ", chartName.ifEmpty { "—" }, boldValue = true)
-                    HorizontalDivider()
-                    TableRow(
-                        if (showTransit) {
-                            "လက်ရှိ ရာဟု (${if (r.useTrueRahu) "True" else "Mean"})"
-                        } else {
-                            "ဇာတာ ရာဟု (${if (r.useTrueRahu) "True" else "Mean"})"
-                        },
-                        if (showTransit) {
-                            val d = RahuKalam.displayNum(transitRahuN28)
-                            if (d == null) "${RahuKalam.name28(transitRahuN28)} — ခံတွင်း အစ"
-                            else "${RahuKalam.name28(transitRahuN28)} (နံပါတ် $d) — ခံတွင်း အစ"
-                        } else {
-                            val d = RahuKalam.displayNum(rahuN28)
-                            if (d == null) "${RahuKalam.name28(rahuN28)} — ခံတွင်း အစ"
-                            else "${RahuKalam.name28(rahuN28)} (နံပါတ် $d) — ခံတွင်း အစ"
-                        },
-                        boldValue = true
-                    )
-                    HorizontalDivider()
-                    TableRow(
-                        "လ ၁ နေ့ (${mmtFmt.format(Date(r.day1Millis))})",
-                        "လ — ${RahuKalam.name28(moon1N28)}${RahuKalam.displayNum(moon1N28)?.let { " ($it)" } ?: ""}၊ ${moon1Part.mm}"
-                    )
-                    HorizontalDivider()
-                    TableRow(
-                        "လ ၂ လာ (${mmtFmt.format(Date(r.day2Millis))})",
-                        "လ — ${RahuKalam.name28(moon2N28)}${RahuKalam.displayNum(moon2N28)?.let { " ($it)" } ?: ""}၊ ${moon2Part.mm}"
-                    )
-                    HorizontalDivider()
-                    TableRow(
-                        "လ ၂ လာ အဟော (ယေဘုယျ)",
-                        "${verdict2.mm} — " + if (verdict2.good) {
-                            "အပိုင်း ${moon2Part.mm} မှာ လ ရောက်တဲ့အခါ အလုပ်အောင်မြင်၊ အိမ်ထောင်ရေး ကောင်း။"
-                        } else {
-                            "အပိုင်း ${moon2Part.mm} မှာ လ ရောက်တဲ့အခါ အလုပ်မှာ အခက်အခဲ၊ အိမ်ထောင်ရေး မတည်။"
-                        },
-                        boldValue = true
-                    )
-                }
-            }
-            Spacer(Modifier.height(12.dp))
-        }
-
         // Six-part table, in construction order (head first, from Rahu).
         item {
             Text("စက်ဝိုင်း ၆ ပိုင်း", style = MaterialTheme.typography.titleMedium)
@@ -594,16 +546,18 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(4.dp)) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
-                        Text("အဖွဲ့", Modifier.weight(0.8f), fontWeight = FontWeight.Bold,
+                        Text("အဖွဲ့", Modifier.weight(0.6f), fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium)
-                        Text("နက္ခတ်", Modifier.weight(2.2f), fontWeight = FontWeight.Bold,
+                        Text("နက္ခတ်", Modifier.weight(1.7f), fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyMedium)
+                        Text("သရ", Modifier.weight(1.7f), fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium)
                     }
                     HorizontalDivider()
                     val displayGroups = RahuKalam.dasaggaGroups(displayWheel.mouthStart28)
                     displayGroups.forEachIndexed { idx, group ->
                         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
-                            Text(group.mm, Modifier.weight(0.8f),
+                            Text(group.mm, Modifier.weight(0.6f),
                                 style = MaterialTheme.typography.bodyMedium)
                             Text(
                                 group.numbers.joinToString(", ") {
@@ -611,7 +565,16 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                                     if (d == null) RahuKalam.name28(it)
                                     else "${RahuKalam.name28(it)} (${RahuKalam.burmeseNum(d)})"
                                 },
-                                Modifier.weight(2.2f),
+                                Modifier.weight(1.7f),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                // 4 သရ per nakshatra (3 for Uttara Ashadha,
+                                // 1 for Abhijit) — e.g. 5 nakshatras = 20 သရ.
+                                group.numbers.flatMap { n ->
+                                    RahuKalam.PADA_SYLLABLES[n - 1].take(RahuKalam.padaCount(n))
+                                }.joinToString(", "),
+                                Modifier.weight(1.7f),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -629,18 +592,6 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
             Button(onClick = { refreshKey++ }) { Text("ပြန်တွက်") }
             Spacer(Modifier.height(24.dp))
         }
-    }
-}
-
-/** One label/value row of the summary table. */
-@Composable
-private fun TableRow(label: String, value: String, boldValue: Boolean = false) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
-        Text(label, Modifier.weight(1.3f),
-            style = MaterialTheme.typography.bodyMedium)
-        Text(value, Modifier.weight(1.3f),
-            fontWeight = if (boldValue) FontWeight.Bold else null,
-            style = MaterialTheme.typography.bodyMedium)
     }
 }
 
