@@ -24,12 +24,17 @@ import com.vedicastrology.app.ui.theme.PlanetNames
 
 /**
  * Planetary positions table:
- * Planet | Degree (DMS) | Rashi | Nakshatra | Paada | RL | NL | SL
+ * Planet | Degree (DMS) | Rashi | Nakshatra | Paada | RL | NL | SL |
+ * Sayana (Tropical degree + rashi).
  * (Reference: Lagna 15:39:59 Kataka, Pushyami, Paada 4, RL Mo, NL Sa, SL Ju)
+ * Nakshatra / NL / SL stay Nirayana (Sidereal) only — the Sayana column
+ * shows longitude + rashi only, derived as sidereal + this chart's own
+ * Lahiri ayanamsa. Follows the natal/transit toggle via [ayanamsa].
  */
 @Composable
 fun PlanetTableScreen(
     planets: List<ChartPlanet>,
+    ayanamsa: Double,
     onBack: () -> Unit
 ) {
     Column(
@@ -45,6 +50,10 @@ fun PlanetTableScreen(
             OutlinedButton(onClick = onBack) { Text("← ဇာတာ") }
             Text("ဂြိုဟ်စာရင်း", style = MaterialTheme.typography.titleLarge)
         }
+        Text(
+            "နက္ခတ် · NL · SL သည် နိယာယန (Sidereal) သာ။ သာယန column မှာ ဒီဂရီ + ရာသီသာ။",
+            style = MaterialTheme.typography.bodySmall
+        )
 
         val scroll = rememberScrollState()
         LazyColumn(
@@ -57,7 +66,7 @@ fun PlanetTableScreen(
                 HorizontalDivider()
             }
             items(planets) { cp ->
-                PlanetRow(cp)
+                PlanetRow(cp, ayanamsa)
                 HorizontalDivider()
             }
         }
@@ -75,14 +84,16 @@ private fun HeaderRow() {
         Cell("RL", 40, bold = true)
         Cell("NL", 40, bold = true)
         Cell("SL", 40, bold = true)
+        Cell("သာယန", 116, bold = true)
     }
 }
 
 @Composable
-private fun PlanetRow(cp: ChartPlanet) {
+private fun PlanetRow(cp: ChartPlanet, ayanamsa: Double) {
     val r = cp.row
     Row(modifier = Modifier.padding(vertical = 6.dp)) {
-        val name = (PlanetNames.short[r.planet] ?: r.planet) + if (cp.retrograde) "(R)" else ""
+        val name = (PlanetNames.code[r.planet] ?: r.planet) + if (cp.retrograde) "(R)" else ""
+        val (tDms, tSignMm) = tropicalDmsAndSign(r.longitude, ayanamsa)
         Cell(name, 64, bold = r.planet == "Lagna")
         Cell(r.dms, 92)
         Cell("${r.signMm}", 72)
@@ -91,6 +102,7 @@ private fun PlanetRow(cp: ChartPlanet) {
         Cell(shortLord(r.rl), 40)
         Cell(shortLord(r.nl), 40)
         Cell(shortLord(r.sl), 40)
+        Cell("$tDms $tSignMm", 116)
     }
 }
 

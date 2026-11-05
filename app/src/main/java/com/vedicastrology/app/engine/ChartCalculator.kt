@@ -34,7 +34,9 @@ data class ChartResult(
     val dashas: List<DashaPeriod>,
     val ascendant: Double,
     val julianDay: Double,
-    val useTrueRahu: Boolean
+    val useTrueRahu: Boolean,
+    /** Lahiri ayanamsa (degrees) at [julianDay] — the value SwissEph applied. */
+    val ayanamsa: Double
 )
 
 object ChartCalculator {
@@ -80,6 +82,6 @@ object ChartCalculator {
             natalMoon, natalData.year, natalData.month, natalData.day
         )
 
-        return ChartResult(planets, dashas, asc, jd, useTrueRahu)
+        return ChartResult(planets, dashas, asc, jd, useTrueRahu, Ephemeris.ayanamsa(jd))
     }
 }

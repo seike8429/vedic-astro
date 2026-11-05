@@ -34,11 +34,11 @@ data class SignInfo(val en: String, val mm: String, val code: String)
 
 val SIGNS = listOf(
     SignInfo("Aries", "မိဿ", "Ar"), SignInfo("Taurus", "ပြိဿ", "Ta"),
-    SignInfo("Gemini", "မေထုန်", "Ge"), SignInfo("Cancer", "ကဋက", "Cn"),
+    SignInfo("Gemini", "မေထုန်", "Ge"), SignInfo("Cancer", "ကရကဋ်", "Cn"),
     SignInfo("Leo", "သိဟ်", "Le"), SignInfo("Virgo", "ကန်", "Vi"),
     SignInfo("Libra", "တူ", "Li"), SignInfo("Scorpio", "ဗြိစ္ဆာ", "Sc"),
     SignInfo("Sagittarius", "ဓနု", "Sg"), SignInfo("Capricorn", "မကာရ", "Cp"),
-    SignInfo("Aquarius", "ကုမ်", "Aq"), SignInfo("Pisces", "မိန်", "Pi")
+    SignInfo("Aquarius", "ကုံ", "Aq"), SignInfo("Pisces", "မိန်", "Pi")
 )
 
 val RASHI_LORDS = listOf(
@@ -52,29 +52,29 @@ val NAKSHATRAS = listOf(
     NakshatraInfo("Ashwini", "အဿဝဏီ", "Ketu"),
     NakshatraInfo("Bharani", "ဘရဏီ", "Venus"),
     NakshatraInfo("Krittika", "ကြတ္တိကာ", "Sun"),
-    NakshatraInfo("Rohini", "ရောဟဏီ", "Moon"),
+    NakshatraInfo("Rohini", "ရောဟိဏီ", "Moon"),
     NakshatraInfo("Mrigashira", "မိဂသီ", "Mars"),
-    NakshatraInfo("Ardra", "အာဒ္ဒါ", "Rahu"),
-    NakshatraInfo("Punarvasu", "ပုန္နဝသု", "Jupiter"),
-    NakshatraInfo("Pushya", "ပုဿျ", "Saturn"),
-    NakshatraInfo("Ashlesha", "အဿလေသ", "Mercury"),
-    NakshatraInfo("Magha", "မဃာ", "Ketu"),
-    NakshatraInfo("Purva Phalguni", "ပုဗ္ဗာဖလဂုဏီ", "Venus"),
-    NakshatraInfo("Uttara Phalguni", "ဥတ္တရာဖလဂုဏီ", "Sun"),
+    NakshatraInfo("Ardra", "အဒြ", "Rahu"),
+    NakshatraInfo("Punarvasu", "ပုနဗ္ဗသု", "Jupiter"),
+    NakshatraInfo("Pushya", "ဖုသျှ", "Saturn"),
+    NakshatraInfo("Ashlesha", "အဿလိဿ", "Mercury"),
+    NakshatraInfo("Magha", "မာဃ", "Ketu"),
+    NakshatraInfo("Purva Phalguni", "ပုဗ္ဗဖလ္ဂုနီ", "Venus"),
+    NakshatraInfo("Uttara Phalguni", "ဥတ္တရဖလ္ဂုနီ", "Sun"),
     NakshatraInfo("Hasta", "ဟတ္ထ", "Moon"),
-    NakshatraInfo("Chitra", "စိတြ", "Mars"),
-    NakshatraInfo("Swati", "သာတိ", "Rahu"),
+    NakshatraInfo("Chitra", "စိတ္တ", "Mars"),
+    NakshatraInfo("Swati", "သွာတိ", "Rahu"),
     NakshatraInfo("Vishakha", "ဝိသာခါ", "Jupiter"),
-    NakshatraInfo("Anuradha", "အနုရာဓာ", "Saturn"),
+    NakshatraInfo("Anuradha", "အနုရာဓ", "Saturn"),
     NakshatraInfo("Jyeshtha", "ဇေဋ္ဌ", "Mercury"),
     NakshatraInfo("Moola", "မူလ", "Ketu"),
     NakshatraInfo("Purva Ashadha", "ပုဗ္ဗာသာဠ်", "Venus"),
     NakshatraInfo("Uttara Ashadha", "ဥတ္တရာသာဠ်", "Sun"),
     NakshatraInfo("Shravana", "သရဝဏ်", "Moon"),
     NakshatraInfo("Dhanishta", "ဓနိဋ္ဌ", "Mars"),
-    NakshatraInfo("Shatabhisha", "သတ္တဘိသဇ်", "Rahu"),
-    NakshatraInfo("Purva Bhadrapada", "ပုဗ္ဗာဘဒြပိုဒ်", "Jupiter"),
-    NakshatraInfo("Uttara Bhadrapada", "ဥတ္တရာဘဒြပိုဒ်", "Saturn"),
+    NakshatraInfo("Shatabhisha", "သတဘိသျှ", "Rahu"),
+    NakshatraInfo("Purva Bhadrapada", "ပုဗ္ဗဘဒြပိုဒ်", "Jupiter"),
+    NakshatraInfo("Uttara Bhadrapada", "ဥတ္တရဘဒြပိုဒ်", "Saturn"),
     NakshatraInfo("Revati", "ရေဝတီ", "Mercury")
 )
 
@@ -118,10 +118,18 @@ data class DashaPeriod(
 
 fun norm360(x: Double): Double = ((x % 360.0) + 360.0) % 360.0
 
+/**
+ * Degrees-in-sign → "DD:MM:SS.s". Display formatting only: the input
+ * longitude is never altered. Rounds total tenths of a second first and
+ * carries 60s → next minute, 60m → next degree, so exact fractional
+ * degrees can never render as "...:60.0" (old truncation bug: e.g.
+ * 4.14999° rendered "04:08:60.0" instead of "04:09:00.0").
+ */
 fun formatDms(degInSign: Double): String {
-    val d = degInSign.toInt()
-    val m = ((degInSign - d) * 60).toInt()
-    val s = (degInSign - d - m / 60.0) * 3600
+    val totalTenths = kotlin.math.round(degInSign * 36000).toLong()
+    val d = (totalTenths / 36000).toInt()
+    val m = ((totalTenths % 36000) / 600).toInt()
+    val s = (totalTenths % 600) / 10.0
     return "%02d:%02d:%04.1f".format(d, m, s)
 }
 

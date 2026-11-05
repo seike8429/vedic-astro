@@ -26,7 +26,11 @@ enum class DiamondMode { D1, D9, BHAVA }
  *
  * Fixed 12-bhava layout (Lagna top-center kite, houses counterclockwise).
  * D1: Rashi signs + planets by bhava. D9: Navamsa signs. BHAVA: bhava numbers.
- * Each region shows the sign number and planet abbreviations (Burmese).
+ * Each region shows the sign number and planet codes (English).
+ * Retrograde planets carry an "(R)" marker; Lagna is drawn as a distinct
+ * bold accent "As" marker. When [centerLabel] is given, a MOTAA-style
+ * settings box (e.g. "Sidereal / True Rahu / LAHIRI", one line each) is drawn
+ * over the chart center.
  */
 @Composable
 fun DiamondChart(
@@ -34,7 +38,9 @@ fun DiamondChart(
     mode: DiamondMode,
     modifier: Modifier = Modifier,
     lineColor: Color = Color(0xFF6A1B1A),
-    accentColor: Color = Color(0xFFB8860B)
+    accentColor: Color = Color(0xFFB8860B),
+    centerLabel: String? = null,
+    centerBackground: Color = Color.White
 ) {
     val layout = remember(planets, mode) { buildDiamondLayout(planets, mode) }
 
@@ -71,6 +77,13 @@ fun DiamondChart(
                 textSize = w * 0.042f
                 isAntiAlias = true
             }
+            val ascPaint = Paint().apply {
+                color = accentColor.toArgb()
+                textAlign = Paint.Align.CENTER
+                textSize = w * 0.042f
+                typeface = Typeface.DEFAULT_BOLD
+                isAntiAlias = true
+            }
 
             for (house in layout) {
                 val c = pt(house.cx, house.cy)
@@ -80,12 +93,54 @@ fun DiamondChart(
                     c.x, c.y - planetPaint.textSize * 0.9f, signPaint
                 )
                 // Planets in this house, one per line.
-                house.planets.forEachIndexed { idx, label ->
+                house.planets.forEachIndexed { idx, pl ->
                     nc.drawText(
-                        label, c.x,
+                        pl.text, c.x,
                         c.y + planetPaint.textSize * (0.35f + idx * 1.05f),
-                        planetPaint
+                        if (pl.isAsc) ascPaint else planetPaint
                     )
+                }
+            }
+
+            // MOTAA-style center settings box, drawn over the chart center.
+            centerLabel?.let { label ->
+                val lines = label.split("\n").filter { it.isNotEmpty() }
+                if (lines.isNotEmpty()) {
+                    val ct = w * 0.030f
+                    val cPaint = Paint().apply {
+                        color = lineColor.toArgb()
+                        textAlign = Paint.Align.CENTER
+                        textSize = ct
+                        typeface = Typeface.DEFAULT_BOLD
+                        isAntiAlias = true
+                    }
+                    val bw = w * 0.34f
+                    val bh = h * 0.17f
+                    val left = w * 0.5f - bw / 2f
+                    val top = h * 0.5f - bh / 2f
+                    nc.drawRect(
+                        left, top, left + bw, top + bh,
+                        Paint().apply {
+                            color = centerBackground.toArgb()
+                            style = Paint.Style.FILL
+                            isAntiAlias = true
+                        }
+                    )
+                    nc.drawRect(
+                        left, top, left + bw, top + bh,
+                        Paint().apply {
+                            color = lineColor.toArgb()
+                            style = Paint.Style.STROKE
+                            strokeWidth = 2.5f
+                            isAntiAlias = true
+                        }
+                    )
+                    val spacing = ct * 1.3f
+                    val mid = h * 0.5f + ct * 0.35f
+                    lines.forEachIndexed { i, s ->
+                        val dy = (i - (lines.size - 1) / 2f) * spacing
+                        nc.drawText(s, w * 0.5f, mid + dy, cPaint)
+                    }
                 }
             }
         }
@@ -111,8 +166,11 @@ private val HOUSE_ANCHORS = listOf(
 private data class HouseCell(
     val cx: Double, val cy: Double,
     val title: String,
-    val planets: List<String>
+    val planets: List<PlanetLabel>
 )
+
+/** Chart planet label; Lagna is drawn as a distinct Asc marker. */
+private data class PlanetLabel(val text: String, val isAsc: Boolean)
 
 private fun signIndexOf(englishName: String): Int =
     SIGNS.indexOfFirst { it.en == englishName }.coerceAtLeast(0)
@@ -149,8 +207,14 @@ private fun buildDiamondLayout(
             else -> (signInHouse(h) + 1).toString()
         }
         val labels = (byHouse[h] ?: emptyList()).map { cp ->
-            val base = PlanetNames.short[cp.row.planet] ?: cp.row.planet
-            if (cp.retrograde) "$base(R)" else base
+            val base = PlanetNames.code[cp.row.planet] ?: cp.row.planet
+            val isAsc = cp.row.planet == "Lagna"
+            val text = when {
+                isAsc -> "As"
+                cp.retrograde -> "$base(R)"
+                else -> base
+            }
+            PlanetLabel(text, isAsc)
         }
         HouseCell(ax, ay, title, labels)
     }

@@ -45,6 +45,16 @@ object Ephemeris {
     }
 
     /**
+     * Lahiri ayanamsa (degrees) at jdUt for the sidereal mode already set
+     * at init (SE_SIDM_LAHIRI). This is the exact value SwissEph applies
+     * internally to every sidereal longitude — exposed here, not recomputed,
+     * so a Tropical (Sayana) display can reuse it: tropical = sidereal +
+     * this ayanamsa, with no new constant or system introduced.
+     */
+    @Synchronized
+    fun ayanamsa(jdUt: Double): Double = swe.swe_get_ayanamsa_ut(jdUt)
+
+    /**
      * Sidereal longitude (degrees, 0-360) for one planet at jdUt.
      * @return Pair(longitude, retrograde)
      */

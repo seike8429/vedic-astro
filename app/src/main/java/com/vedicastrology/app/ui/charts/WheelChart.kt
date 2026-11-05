@@ -114,7 +114,7 @@ fun WheelChart(
             for ((cp, radius) in placed) {
                 val r = if (radius == 0) rPlanetOuter else rPlanetInner
                 val p = point(cp.row.longitude, r)
-                var label = PlanetNames.short[cp.row.planet] ?: cp.row.planet
+                var label = PlanetNames.code[cp.row.planet] ?: cp.row.planet
                 if (cp.retrograde) label += "(R)"
                 nc.drawText(label, p.x, p.y + planetPaint.textSize * 0.35f,
                     if (cp.retrograde) retroPaint else planetPaint)
