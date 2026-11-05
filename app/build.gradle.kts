@@ -17,6 +17,21 @@ android {
         vectorDrawables { useSupportLibrary = true }
     }
 
+    // Stable debug keystore (committed as debug.keystore at the repo
+    // root): every CI build signs with the same debug key, so each
+    // version installs over the previous one. The key that signed
+    // v1.8.14 locally is lost (VM replacement), so v1.8.15 needs one
+    // uninstall first; from v1.8.15 on, upgrades are clean. This is a
+    // debug key with the public default password, never a release key.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("../debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
