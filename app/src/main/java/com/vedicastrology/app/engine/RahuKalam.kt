@@ -107,6 +107,35 @@ object RahuKalam {
 
     private fun wrap28(n: Int): Int = ((n - 1) % 28 + 28) % 28 + 1
 
+    /**
+     * The ten Dasagga (ဒသဂ္ဂ) groups, from the book's group table
+     * (nakshatra numbers in the 28-system, Ashwini = 1, Abhijit = 22).
+     * The group names for [7,8,9] and [10] are read as ပုဗ္ဗ and မော
+     * from the book's note (variant list) and the ZarTarPro photo —
+     * the author can correct them. Used for the group ring of the
+     * ZarTarPro-style wheel.
+     */
+    data class DasaggaGroup(val mm: String, val numbers: List<Int>)
+
+    val DASAGGA_GROUPS = listOf(
+        DasaggaGroup("ပူဖိတ", listOf(11, 12, 13)),
+        DasaggaGroup("ဖလိတ", listOf(14, 15, 16, 17)),
+        DasaggaGroup("နိဖလ", listOf(18, 19, 20)),
+        DasaggaGroup("ဇ္ဇိုတ", listOf(21, 22, 23)),
+        DasaggaGroup("ဂူဒ", listOf(24)),
+        DasaggaGroup("ရာဇေ", listOf(25, 26, 27)),
+        DasaggaGroup("ဌာသ", listOf(28, 1, 2)),
+        DasaggaGroup("ထာမသ", listOf(3, 4, 5, 6)),
+        DasaggaGroup("ပုဗ္ဗ", listOf(7, 8, 9)),
+        DasaggaGroup("မော", listOf(10))
+    )
+
+    /** Burmese numeral for a number 1-28 (ZarTarPro writes numerals this way). */
+    fun burmeseNum(n: Int): String {
+        val digits = "၀၁၂၃၄၅၆၇၈၉"
+        return n.toString().map { digits[it - '0'] }.joinToString("")
+    }
+
     /** Day-2 general verdict for a Moon part (book's Sayagyi rule). */
     enum class Verdict(val mm: String, val good: Boolean) {
         GOOD("ကောင်း", true),
