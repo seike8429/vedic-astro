@@ -42,7 +42,9 @@ object RahuKalam {
      * The six body parts of the Sayagyi wheel, in cycle order starting
      * at the mouth. The construction starts at the HEAD (Rahu's natal
      * nakshatra) and runs head -> mouth -> chest -> belly -> anus ->
-     * hips -> head.
+     * hips -> head. The mouth (offset 7) and the anus (offset 21) are
+     * exactly 14 nakshatras = 180° apart — the author's rule
+     * 2026-11-05 (the anus/Guda sits exactly 180° from the mouth).
      */
     enum class WheelPart(val mm: String, val count: Int) {
         MOUTH("ခံတွင်း", 1),
@@ -116,29 +118,48 @@ object RahuKalam {
     private fun wrap28(n: Int): Int = ((n - 1) % 28 + 28) % 28 + 1
 
     /**
-     * The ten Dasagga (ဒသဂ္ဂ) groups, read directly from the book's
-     * group table (his photo, upload 185): the book writes Abhijit as
-     * X between 21 and 22, so its 22, 23, 24, 25, 26, 27 are our 23,
-     * 24, 25, 26, 27, 28. The table reads: 11-13 ပူဖိတ, 14-17 ဖလိတ,
-     * 18-20 နိဖလ, 21,X,22 ဇ္ဇိုတ, 23 ဂူဒ, 24-26 ရာဇေ, 27,1,2 ထာမသ,
-     * 3-6 ပူ, 7-9 မတ, 10 ဇီဝ. There is NO ဌာသ group — that was a
-     * misread of ထာမသ in an earlier session; the table is the
-     * authority. Used for the group ring and the groups table.
+     * The ten Dasagga (ဒသဂ္ဂ) groups. They are NOT fixed nakshatras —
+     * they are subdivisions of the Sayagyi parts, defined by offsets
+     * from the HEAD (Rahu's nakshatra), so they shift with the wheel
+     * and always coincide with the parts (the author's rule 2026-11-05,
+     * ထပ်တူကျ): the mouth (offset 7) IS the ဇီဝ group (one nakshatra),
+     * the anus (offset 21) IS the ဂူဒ group (one nakshatra), and the
+     * mouth and anus sit exactly 180° apart. The book's group table
+     * (his photo, upload 185) shows these groups for the reference
+     * head = Krittika (3): 11-13 ပုပ္ဖိတ, 14-17 ဖလိတ, 18-20 နိဖ္ဖလ,
+     * 21,X,22 ဇဋိတ, 23 ဂူဒ, 24-26 ရာဇဿ, 27,1,2 ထမဿ, 3-6 ဝုဒ္ဓ,
+     * 7-9 မတ, 10 ဇီဝ (the book writes Abhijit as X between 21 and 22,
+     * so its 22, 23, 24, 25, 26, 27 are our 23, 24, 25, 26, 27, 28).
+     * There is NO ဌာသ group — that was a misread of ထာမသ in an
+     * earlier session; the table is the authority. Spellings corrected
+     * by the author 2026-11-05 (ပူဖိတ→ပုပ္ဖိတ, နိဖလ→နိဖ္ဖလ,
+     * ဇ္ဇိုတ→ဇဋိတ, ရာဇေ→ရာဇဿ, ထာမသ→ထမဿ, ပူ→ဝုဒ္ဓ).
+     * Terminology (author): ဇီဝ = the mouth (ခံတွင်း), ဂူဒ = the anus
+     * (စအို, the tail) — same thing, different words.
+     * Part -> groups: HEAD = ဝုဒ္ဓ + မတ; MOUTH = ဇီဝ; CHEST = ပူဖိတ +
+     * ဖလိတ; BELLY = နိဖလ + ဇဋိတ; ANUS = ဂူဒ; HIPS = ရာဇဿ + ထမဿ.
      */
     data class DasaggaGroup(val mm: String, val numbers: List<Int>)
 
-    val DASAGGA_GROUPS = listOf(
-        DasaggaGroup("ပူဖိတ", listOf(11, 12, 13)),
-        DasaggaGroup("ဖလိတ", listOf(14, 15, 16, 17)),
-        DasaggaGroup("နိဖလ", listOf(18, 19, 20)),
-        DasaggaGroup("ဇ္ဇိုတ", listOf(21, 22, 23)),
-        DasaggaGroup("ဂူဒ", listOf(24)),
-        DasaggaGroup("ရာဇေ", listOf(25, 26, 27)),
-        DasaggaGroup("ထာမသ", listOf(28, 1, 2)),
-        DasaggaGroup("ပူ", listOf(3, 4, 5, 6)),
-        DasaggaGroup("မတ", listOf(7, 8, 9)),
-        DasaggaGroup("ဇီဝ", listOf(10))
+    /** Dasagga group offsets from the head (Rahu's nakshatra). */
+    private val DASAGGA_GROUP_OFFSETS = listOf(
+        "ဝုဒ္ဓ" to (0..3),
+        "မတ" to (4..6),
+        "ဇီဝ" to (7..7),
+        "ပုပ္ဖိတ" to (8..10),
+        "ဖလိတ" to (11..14),
+        "နိဖ္ဖလ" to (15..17),
+        "ဇဋိတ" to (18..20),
+        "ဂူဒ" to (21..21),
+        "ရာဇဿ" to (22..24),
+        "ထမဿ" to (25..27)
     )
+
+    /** The ten Dasagga groups for a wheel whose head starts at [headStart28]. */
+    fun dasaggaGroups(headStart28: Int): List<DasaggaGroup> =
+        DASAGGA_GROUP_OFFSETS.map { (name, range) ->
+            DasaggaGroup(name, range.map { wrap28(headStart28 + it) })
+        }
 
     /**
      * Pada (သရ) syllables per nakshatra (28-system; index = n28 - 1).

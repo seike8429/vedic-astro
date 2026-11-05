@@ -383,18 +383,24 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
             Spacer(Modifier.height(12.dp))
         }
 
-        // Planets: natal vs now (transit), with nakshatra + pada + သရ.
+        // Planets: the displayed set (ဇာတာ or လက်ရှိ, following the toggle),
+        // one line per planet — ဂြိုလ် | နက္ခတ် | ပါဒ | သရ (author's format).
         item {
-            Text("ဂြိုလ် — ဇာတာ နှင့် လက်ရှိ", style = MaterialTheme.typography.titleMedium)
+            Text(
+                if (showTransit) "ဂြိုလ် — လက်ရှိ (now)" else "ဂြိုလ် — ဇာတာ",
+                style = MaterialTheme.typography.titleMedium
+            )
             Spacer(Modifier.height(4.dp))
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(4.dp)) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
-                        Text("ဂြိုလ်", Modifier.weight(0.7f), fontWeight = FontWeight.Bold,
+                        Text("ဂြိုလ်", Modifier.weight(0.9f), fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium)
-                        Text("ဇာတာ", Modifier.weight(1.15f), fontWeight = FontWeight.Bold,
+                        Text("နက္ခတ်", Modifier.weight(1.2f), fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium)
-                        Text("လက်ရှိ (now)", Modifier.weight(1.15f), fontWeight = FontWeight.Bold,
+                        Text("ပါဒ", Modifier.weight(0.5f), fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyMedium)
+                        Text("သရ", Modifier.weight(0.6f), fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium)
                     }
                     HorizontalDivider()
@@ -404,20 +410,32 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                         "Venus" to "သောကြာ", "Saturn" to "စနေ",
                         "Rahu" to "ရာဟု", "Ketu" to "ကေတု"
                     )
-                    val natalByName = r.natalPlanets.toMap()
-                    val transitByName = r.transitPlanets.toMap()
+                    val displayByName = (if (showTransit) r.transitPlanets else r.natalPlanets).toMap()
                     val order = listOf(
                         "Sun", "Moon", "Mars", "Mercury", "Jupiter",
                         "Venus", "Saturn", "Rahu", "Ketu"
                     )
                     order.forEachIndexed { idx, name ->
+                        val lon = displayByName[name]
+                        val (n28, pada) = if (lon == null) 0 to 0 else RahuKalam.padaOf(lon)
                         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
-                            Text(planetMm[name] ?: name, Modifier.weight(0.7f),
+                            Text(planetMm[name] ?: name, Modifier.weight(0.9f),
                                 style = MaterialTheme.typography.bodyMedium)
-                            Text(planetCell(natalByName[name]), Modifier.weight(1.15f),
-                                style = MaterialTheme.typography.bodyMedium)
-                            Text(planetCell(transitByName[name]), Modifier.weight(1.15f),
-                                style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                if (lon == null) "—" else RahuKalam.name28(n28),
+                                Modifier.weight(1.2f),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                if (lon == null || n28 == 22) "—" else "$pada",
+                                Modifier.weight(0.5f),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                if (lon == null) "—" else RahuKalam.syllableOf(lon),
+                                Modifier.weight(0.6f),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
                         }
                         if (idx < order.size - 1) HorizontalDivider()
                     }
@@ -439,7 +457,8 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                             style = MaterialTheme.typography.bodyMedium)
                     }
                     HorizontalDivider()
-                    RahuKalam.DASAGGA_GROUPS.forEachIndexed { idx, group ->
+                    val displayGroups = RahuKalam.dasaggaGroups(displayWheel.headStart28)
+                    displayGroups.forEachIndexed { idx, group ->
                         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
                             Text(group.mm, Modifier.weight(0.8f),
                                 style = MaterialTheme.typography.bodyMedium)
@@ -451,7 +470,7 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
-                        if (idx < RahuKalam.DASAGGA_GROUPS.size - 1) HorizontalDivider()
+                        if (idx < displayGroups.size - 1) HorizontalDivider()
                     }
                 }
             }
@@ -466,16 +485,6 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
             Spacer(Modifier.height(24.dp))
         }
     }
-}
-
-/** One planet's cell: nakshatra name (number) · pada number (သရ). */
-private fun planetCell(lon: Double?): String {
-    if (lon == null) return "—"
-    val (n28, pada) = RahuKalam.padaOf(lon)
-    val syllable = RahuKalam.syllableOf(lon)
-    val padaText = if (n28 == 22) "ပါဒ" else "$pada ပါဒ"
-    return "${RahuKalam.name28(n28)} (${RahuKalam.burmeseNum(n28)}) · " +
-        "$padaText ($syllable)"
 }
 
 /** One label/value row of the summary table. */
@@ -596,7 +605,7 @@ private fun RahuKalamWheel(
         // ---- Pink Dasagga group ring (10 groups, names along the arc) ----
         val groupR = R * 0.865f
         val groupW = R * 0.07f
-        RahuKalam.DASAGGA_GROUPS.forEach { group ->
+        RahuKalam.dasaggaGroups(wheel.headStart28).forEach { group ->
             val first = group.numbers.first()
             val start = cellStart(first)
             val sweep = group.numbers.size * 360.0 / 28.0
@@ -624,7 +633,7 @@ private fun RahuKalamWheel(
         )
 
         // ---- Blue Dasagga group segments (diamond edge .. pink ring) ----
-        RahuKalam.DASAGGA_GROUPS.forEach { group ->
+        RahuKalam.dasaggaGroups(wheel.headStart28).forEach { group ->
             val first = group.numbers.first()
             val start = cellStart(first)
             val sweep = group.numbers.size * 360.0 / 28.0
@@ -1052,7 +1061,7 @@ private fun RahuKalamWheelZarTarPro(
         // ---- Dasagga group ring (10 coloured arcs, names along the arc) ----
         val groupR = R * 0.58f
         val groupW = R * 0.10f
-        RahuKalam.DASAGGA_GROUPS.forEachIndexed { idx, group ->
+        RahuKalam.dasaggaGroups(wheel.headStart28).forEachIndexed { idx, group ->
             val first = group.numbers.first()
             val start = (first - 1) * 360f / 28f - 90f
             val sweep = group.numbers.size * 360f / 28f
