@@ -293,7 +293,7 @@ private data class SignCell(
     val planets: List<EastIndianPlanetLabel>
 )
 
-/** Chart planet label; Lagna is drawn as a distinct "As" marker. */
+/** Chart planet label; Lagna is drawn as a distinct "လ" marker. */
 private data class EastIndianPlanetLabel(val text: String, val isAsc: Boolean)
 
 /** Sidereal sign index (0 = Aries) from a sidereal longitude. */
@@ -313,15 +313,17 @@ private fun degreeInSign(longitude: Double): Int {
 }
 
 /**
- * Planet labels for one cell. D1 shows code + degree (reference-app
- * style); D9/Bhava show code only, mirroring the diamond view's modes.
+ * Planet labels for one cell. D1 shows number + degree (author's scheme:
+ * Sun ၁, Moon ၂, Mars ၃, Mercury ၄, Jupiter ၅, Venus ၆, Saturn ၇, Rahu ၈,
+ * Ketu ၉, Lagna လ); D9/Bhava show number only, mirroring the diamond
+ * view's modes.
  */
 private fun labelsFor(members: List<ChartPlanet>, withDegree: Boolean): List<EastIndianPlanetLabel> {
     return members.map { cp ->
         val isAsc = cp.row.planet == "Lagna"
-        val code = PlanetNames.code[cp.row.planet] ?: cp.row.planet
+        val code = PlanetNames.num[cp.row.planet] ?: cp.row.planet
         val text = when {
-            isAsc -> if (withDegree) "As ${degreeInSign(cp.row.longitude)}" else "As"
+            isAsc -> if (withDegree) "လ ${degreeInSign(cp.row.longitude)}" else "လ"
             cp.retrograde -> if (withDegree) "$code ${degreeInSign(cp.row.longitude)}(R)" else "$code(R)"
             else -> if (withDegree) "$code ${degreeInSign(cp.row.longitude)}" else code
         }

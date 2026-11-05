@@ -91,14 +91,14 @@ private data class Reading(
     val useTrueRahu: Boolean
 )
 
-/** Burmese single-letter glyphs for the planet markers. */
+/** Planet numbers for the markers (author's scheme 2026-11-06): Sun ၁, Moon ၂, Mars ၃, Mercury ၄, Jupiter ၅, Venus ၆, Saturn ၇, Rahu ၈, Ketu ၉. Replaces the old single-letter glyphs (e.g. Saturn န) — the author wants numbers, not letters. */
 private val PLANET_GLYPHS = mapOf(
-    "Sun" to "တ", "Moon" to "လ", "Mars" to "င", "Mercury" to "ဗ",
-    "Jupiter" to "ဂ", "Venus" to "စ", "Saturn" to "န",
-    "Rahu" to "ရ", "Ketu" to "က"
+    "Sun" to "၁", "Moon" to "၂", "Mars" to "၃", "Mercury" to "၄",
+    "Jupiter" to "၅", "Venus" to "၆", "Saturn" to "၇",
+    "Rahu" to "၈", "Ketu" to "၉"
 )
 
-/** Marker colours (glyph distinguishes same colours). */
+/** Marker colours (number distinguishes same colours). */
 private val PLANET_COLORS = mapOf(
     "Sun" to Color(0xFFF57F17), "Moon" to Color(0xFF212121),
     "Mars" to Color(0xFFD32F2F), "Mercury" to Color(0xFF1565C0),
@@ -298,21 +298,25 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                             "ဇာတာ ရာဟု (${if (r.useTrueRahu) "True" else "Mean"})"
                         },
                         if (showTransit) {
-                            "${RahuKalam.name28(transitRahuN28)} (နံပါတ် $transitRahuN28) — ခံတွင်း အစ"
+                            val d = RahuKalam.displayNum(transitRahuN28)
+                            if (d == null) "${RahuKalam.name28(transitRahuN28)} — ခံတွင်း အစ"
+                            else "${RahuKalam.name28(transitRahuN28)} (နံပါတ် $d) — ခံတွင်း အစ"
                         } else {
-                            "${RahuKalam.name28(rahuN28)} (နံပါတ် $rahuN28) — ခံတွင်း အစ"
+                            val d = RahuKalam.displayNum(rahuN28)
+                            if (d == null) "${RahuKalam.name28(rahuN28)} — ခံတွင်း အစ"
+                            else "${RahuKalam.name28(rahuN28)} (နံပါတ် $d) — ခံတွင်း အစ"
                         },
                         boldValue = true
                     )
                     HorizontalDivider()
                     TableRow(
                         "၁ နေ့ (${mmtFmt.format(Date(r.day1Millis))})",
-                        "လ — ${RahuKalam.name28(moon1N28)} ($moon1N28)၊ ${moon1Part.mm}"
+                        "လ — ${RahuKalam.name28(moon1N28)}${RahuKalam.displayNum(moon1N28)?.let { " ($it)" } ?: ""}၊ ${moon1Part.mm}"
                     )
                     HorizontalDivider()
                     TableRow(
                         "၂ လာ (${mmtFmt.format(Date(r.day2Millis))})",
-                        "လ — ${RahuKalam.name28(moon2N28)} ($moon2N28)၊ ${moon2Part.mm}"
+                        "လ — ${RahuKalam.name28(moon2N28)}${RahuKalam.displayNum(moon2N28)?.let { " ($it)" } ?: ""}၊ ${moon2Part.mm}"
                     )
                     HorizontalDivider()
                     TableRow(
@@ -359,7 +363,7 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                                 fontWeight = if (part == RahuKalam.WheelPart.HEAD) FontWeight.Bold else null,
                                 style = MaterialTheme.typography.bodyMedium)
                             Text(
-                                entry.numbers.joinToString(", ") { RahuKalam.burmeseNum(it) },
+                                entry.numbers.joinToString(", ") { RahuKalam.displayNumLabel(it) },
                                 Modifier.weight(1.6f),
                                 style = MaterialTheme.typography.bodyMedium
                             )
@@ -477,7 +481,9 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                                 style = MaterialTheme.typography.bodyMedium)
                             Text(
                                 group.numbers.joinToString(", ") {
-                                    "${RahuKalam.name28(it)} (${RahuKalam.burmeseNum(it)})"
+                                    val d = RahuKalam.displayNum(it)
+                                    if (d == null) RahuKalam.name28(it)
+                                    else "${RahuKalam.name28(it)} (${RahuKalam.burmeseNum(d)})"
                                 },
                                 Modifier.weight(2.2f),
                                 style = MaterialTheme.typography.bodyMedium

@@ -247,6 +247,25 @@ object RahuKalam {
         return n.toString().map { digits[it - '0'] }.joinToString("")
     }
 
+    /**
+     * Display number for a 28-system nakshatra (author's rule 2026-11-06):
+     * Abhijit (22) has NO number — it is just "အဘိဇိတ်"; the numbers run
+     * 1–27 only, so nakshatras after Abhijit show n28−1 (Shravana 23 -> 22,
+     * Revati 28 -> 27). Returns null for Abhijit. The internal 1–28
+     * numbering is unchanged — this is display only.
+     */
+    fun displayNum(n28: Int): Int? = when {
+        n28 == 22 -> null
+        n28 > 22 -> n28 - 1
+        else -> n28
+    }
+
+    /** Display label for a nakshatra number: "အဘိဇိတ်" for Abhijit (no number), else the Burmese numeral (1–27). */
+    fun displayNumLabel(n28: Int): String {
+        val d = displayNum(n28)
+        return if (d == null) "အဘိဇိတ်" else burmeseNum(d)
+    }
+
     /** Day-2 general verdict for a Moon part (book's Sayagyi rule). */
     enum class Verdict(val mm: String, val good: Boolean) {
         GOOD("ကောင်း", true),

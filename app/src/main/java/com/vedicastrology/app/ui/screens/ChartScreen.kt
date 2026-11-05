@@ -384,9 +384,9 @@ fun ChartScreen(
     }
 }
 
-/** "Jupiter" -> "Ju" style short lord codes (same mapping as the table screen). */
+/** Planet number for a lord name (author's scheme: Sun ၁ … Ketu ၉, Lagna လ). */
 private fun shortLord(english: String): String =
-    PlanetNames.code.entries.firstOrNull { (k, _) -> k == english }?.value ?: english.take(2)
+    PlanetNames.num.entries.firstOrNull { (k, _) -> k == english }?.value ?: english.take(2)
 
 /**
  * MOTAA-style compact NL/SL side columns beside the diamond chart.
@@ -405,7 +405,7 @@ private fun NlSlSideColumns(planets: List<ChartPlanet>) {
                 Text("SL", Modifier.width(26.dp), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
             }
             planets.forEach { cp ->
-                val name = (PlanetNames.code[cp.row.planet] ?: cp.row.planet) +
+                val name = (PlanetNames.num[cp.row.planet] ?: cp.row.planet) +
                     if (cp.retrograde) "(R)" else ""
                 Row {
                     Text(
@@ -481,7 +481,7 @@ private fun NakshatraStrip(planets: List<ChartPlanet>, ayanamsa: Double) {
                     }
                     planets.forEach { cp ->
                         val r = cp.row
-                        val name = (PlanetNames.code[r.planet] ?: r.planet) +
+                        val name = (PlanetNames.num[r.planet] ?: r.planet) +
                             if (cp.retrograde) "(R)" else ""
                         val (tDms, tSignMm) = tropicalDmsAndSign(r.longitude, ayanamsa)
                         Row(verticalAlignment = Alignment.CenterVertically) {

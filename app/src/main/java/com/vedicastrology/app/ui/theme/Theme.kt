@@ -81,4 +81,18 @@ object PlanetNames {
         "Rahu" to "Ra",
         "Ketu" to "Ke"
     )
+
+    /** Planet numbers (author's scheme 2026-11-06): Sun ၁, Moon ၂, Mars ၃, Mercury ၄, Jupiter ၅, Venus ၆, Saturn ၇, Rahu ၈, Ketu ၉, Lagna လ. Used for the chart cells and the Rahu Kalam wheel markers, replacing single letters (e.g. Saturn န) and English codes. */
+    val num = mapOf(
+        "Lagna" to "လ",
+        "Sun" to "၁",
+        "Moon" to "၂",
+        "Mars" to "၃",
+        "Mercury" to "၄",
+        "Jupiter" to "၅",
+        "Venus" to "၆",
+        "Saturn" to "၇",
+        "Rahu" to "၈",
+        "Ketu" to "၉"
+    )
 }
