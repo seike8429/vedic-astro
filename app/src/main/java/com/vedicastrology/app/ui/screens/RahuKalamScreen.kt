@@ -186,7 +186,7 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                     "ရာဟု စီးတဲ့ နက္ခတ်က ခံတွင်း၊ ကျန်အပိုင်းတွေ အစဉ်အတိုင်း။ " +
                     "ရာဟု နက္ခတ် ပြောင်းရင် ခံတွင်း ရွေ့ပြီး အပိုင်းအားလုံး လိုက်ရွေ့တယ် — " +
                     "ဇာတာ စက်ဝိုင်း (ဇာတာ ရာဟု) နဲ့ လက်ရှိ စက်ဝိုင်း (လက်ရှိ ရာဟု) ခွဲပြထားသည်။ " +
-                    "လ ရဲ့ အပိုင်း (၁ နေ့ / ၂ လာ) ကို ကြည့်ပြီး အဟော ဖတ်သည်။",
+                    "လ ရဲ့ အပိုင်း (လ ၁ နေ့ / လ ၂ လာ) ကို ကြည့်ပြီး အဟော ဖတ်သည်။",
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(Modifier.height(12.dp))
@@ -406,17 +406,17 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                     )
                     HorizontalDivider()
                     TableRow(
-                        "၁ နေ့ (${mmtFmt.format(Date(r.day1Millis))})",
+                        "လ ၁ နေ့ (${mmtFmt.format(Date(r.day1Millis))})",
                         "လ — ${RahuKalam.name28(moon1N28)}${RahuKalam.displayNum(moon1N28)?.let { " ($it)" } ?: ""}၊ ${moon1Part.mm}"
                     )
                     HorizontalDivider()
                     TableRow(
-                        "၂ လာ (${mmtFmt.format(Date(r.day2Millis))})",
+                        "လ ၂ လာ (${mmtFmt.format(Date(r.day2Millis))})",
                         "လ — ${RahuKalam.name28(moon2N28)}${RahuKalam.displayNum(moon2N28)?.let { " ($it)" } ?: ""}၊ ${moon2Part.mm}"
                     )
                     HorizontalDivider()
                     TableRow(
-                        "၂ လာ အဟော (ယေဘုယျ)",
+                        "လ ၂ လာ အဟော (ယေဘုယျ)",
                         "${verdict2.mm} — " + if (verdict2.good) {
                             "အပိုင်း ${moon2Part.mm} မှာ လ ရောက်တဲ့အခါ အလုပ်အောင်မြင်၊ အိမ်ထောင်ရေး ကောင်း။"
                         } else {
