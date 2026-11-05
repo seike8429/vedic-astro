@@ -1,8 +1,8 @@
 package com.vedicastrology.app.ui.screens
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.rememberTransformableState
-import androidx.compose.foundation.gestures.transformable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,7 +36,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.awaitPointerEvent
+import androidx.compose.ui.input.pointer.consume
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.vedicastrology.app.engine.BirthData
 import com.vedicastrology.app.engine.ChartResult
@@ -115,13 +120,21 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
     // One set at a time — the author dislikes the two sets overlapping.
     var showTransit by remember { mutableStateOf(false) }
     // Wheel zoom (the wheel is small on a phone): pinch to zoom, or the
-    // − / ＋ buttons; 1x resets. Pan only while zoomed in.
+    // − / ＋ buttons; 1x resets. Pan only while zoomed in. The gesture
+    // is detected manually (not transformable) so the pinch centroid
+    // stays fixed — the wheel no longer jumps when pinching off-centre —
+    // and the offset is clamped so the wheel can never be panned
+    // off-screen or stick slightly zoomed and shifted.
     var wheelScale by remember { mutableFloatStateOf(1f) }
     var wheelOffset by remember { mutableStateOf(Offset.Zero) }
-    val wheelZoom = rememberTransformableState { zoomChange, panChange, _ ->
-        wheelScale = (wheelScale * zoomChange).coerceIn(1f, 4f)
-        if (wheelScale > 1f) wheelOffset += panChange
-        if (wheelScale == 1f) wheelOffset = Offset.Zero
+    var wheelSize by remember { mutableStateOf(IntSize.Zero) }
+    // Clamp the pan offset so the zoomed wheel always covers the box
+    // (no empty space, and the wheel can always be pinched back).
+    fun clampWheelOffset(offset: Offset, scale: Float, size: IntSize): Offset {
+        if (scale <= 1f || size.width == 0 || size.height == 0) return Offset.Zero
+        val maxX = size.width * (scale - 1f) / 2f
+        val maxY = size.height * (scale - 1f) / 2f
+        return Offset(offset.x.coerceIn(-maxX, maxX), offset.y.coerceIn(-maxY, maxY))
     }
     var loadError by remember { mutableStateOf<String?>(null) }
 
@@ -259,12 +272,79 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
             }
             Spacer(Modifier.height(4.dp))
             // The displayed planet set follows the mode (one set at a time).
-            // Pinch to zoom, drag to pan while zoomed in.
+            // Pinch to zoom (centroid stays fixed), drag to pan while
+            // zoomed in; a one-finger drag at 1x still scrolls the page.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
-                    .transformable(wheelZoom)
+                    .onSizeChanged { wheelSize = it }
+                    .pointerInput(Unit) {
+                        awaitEachGesture {
+                            awaitFirstDown(requireUnconsumed = false)
+                            var prevCentroid = Offset.Zero
+                            var prevAvgDist = 0f
+                            var started = false
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val pressed = event.changes.filter { it.pressed }
+                                if (pressed.isEmpty()) break
+                                val positions = pressed.associate { it.id to it.position }
+                                val centroid = positions.values
+                                    .reduce { a, b -> a + b } / positions.size.toFloat()
+                                val avgDist = positions.values
+                                    .map { (it - centroid).getDistance() }
+                                    .average().toFloat()
+                                if (!started) {
+                                    prevCentroid = centroid
+                                    prevAvgDist = avgDist
+                                    started = true
+                                    continue
+                                }
+                                if (positions.size >= 2 && prevAvgDist > 0f && avgDist > 0f) {
+                                    // Two fingers: pinch-zoom around the
+                                    // centroid, so the point under the
+                                    // fingers stays put (no jump).
+                                    val zoomChange = avgDist / prevAvgDist
+                                    val panChange = centroid - prevCentroid
+                                    val newScale = (wheelScale * zoomChange)
+                                        .coerceIn(1f, 4f)
+                                    val factor = newScale / wheelScale
+                                    val center = Offset(
+                                        wheelSize.width / 2f,
+                                        wheelSize.height / 2f
+                                    )
+                                    wheelOffset = wheelOffset * factor +
+                                        (centroid - center) * (1f - factor) +
+                                        panChange
+                                    wheelScale = newScale
+                                    // Snap back to 1x when pinched almost
+                                    // all the way out, so the wheel
+                                    // reliably returns to centre.
+                                    if (wheelScale <= 1.05f) {
+                                        wheelScale = 1f
+                                        wheelOffset = Offset.Zero
+                                    } else {
+                                        wheelOffset = clampWheelOffset(
+                                            wheelOffset, wheelScale, wheelSize
+                                        )
+                                    }
+                                    event.changes.forEach { it.consume() }
+                                } else if (positions.size == 1 && wheelScale > 1f) {
+                                    // One finger while zoomed: pan the wheel.
+                                    wheelOffset = clampWheelOffset(
+                                        wheelOffset + (centroid - prevCentroid),
+                                        wheelScale, wheelSize
+                                    )
+                                    event.changes.forEach { it.consume() }
+                                }
+                                // One finger at 1x: not consumed, so the
+                                // page scrolls as normal.
+                                prevCentroid = centroid
+                                prevAvgDist = avgDist
+                            }
+                        }
+                    }
                     .graphicsLayer(
                         scaleX = wheelScale,
                         scaleY = wheelScale,
