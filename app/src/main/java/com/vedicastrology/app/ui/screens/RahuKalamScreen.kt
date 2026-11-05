@@ -160,11 +160,13 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                 moon1N28 = moon1N28,
                 moon2N28 = moon2N28,
                 chartName = chartName,
-                // Centre shows the BIRTH date (ZarTarPro does the same);
-                // today/tomorrow live in the summary card below.
-                dateLabel = String.format(
-                    Locale.US, "%02d/%02d/%04d", birth.day, birth.month, birth.year
-                ),
+                // Centre shows the BIRTH date + time in ZarTarPro's
+                // format ("2.4.2026 7:42:18": d.M.yyyy H:mm:ss, dots,
+                // no leading zeros); today/tomorrow live in the
+                // summary card below.
+                dateLabel = "${birth.day}.${birth.month}.${birth.year} " +
+                    "${birth.hour}:${birth.minute}:00",
+                placeLabel = birth.placeName,
                 modifier = Modifier.fillMaxWidth(0.96f).aspectRatio(1f)
             )
             Spacer(Modifier.height(12.dp))
@@ -174,6 +176,13 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
+                    if (chartName.isNotEmpty()) {
+                        Text(
+                            "ဇာတာ: $chartName",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     Text(
                         "ဇာတာ ရာဟု (${if (r.useTrueRahu) "True" else "Mean"}): " +
                             "${RahuKalam.name28(rahuN28)} (နံပါတ် $rahuN28) — ဦးခေါင်း အစ",
@@ -271,6 +280,7 @@ private fun RahuKalamWheel(
     moon2N28: Int,
     chartName: String,
     dateLabel: String,
+    placeLabel: String,
     modifier: Modifier = Modifier
 ) {
     val partColors = mapOf(
@@ -346,7 +356,8 @@ private fun RahuKalamWheel(
                 drawText(entry.part.mm, tx, ty + paint.textSize / 3f, paint)
             }
         }
-        // Centre circle: head nakshatra + chart + date.
+        // Centre circle, ZarTarPro-style: head nakshatra, birth
+        // date + time ("2.4.2026 7:42:18"), "Sidereal LAHIRI", place.
         drawCircle(
             color = Color(0xFFFFF3E0),
             radius = centerR,
@@ -356,7 +367,7 @@ private fun RahuKalamWheel(
         drawContext.canvas.nativeCanvas.apply {
             val headPaint = android.graphics.Paint().apply {
                 color = android.graphics.Color.BLACK
-                textSize = size.minDimension * 0.036f
+                textSize = size.minDimension * 0.032f
                 textAlign = android.graphics.Paint.Align.CENTER
                 isFakeBoldText = true
             }
@@ -370,15 +381,16 @@ private fun RahuKalamWheel(
                 textSize = size.minDimension * 0.024f
                 textAlign = android.graphics.Paint.Align.CENTER
             }
-            drawText("ဦးခေါင်း", cx, cy - headPaint.textSize * 0.9f, headPaint)
             drawText(
-                RahuKalam.name28(wheel.headStart28) + " (${wheel.headStart28})",
-                cx, cy + subPaint.textSize * 0.4f, subPaint
+                "ဦးခေါင်း " + RahuKalam.name28(wheel.headStart28) +
+                    " (${wheel.headStart28})",
+                cx, cy - headPaint.textSize * 1.1f, headPaint
             )
-            if (chartName.isNotEmpty()) {
-                drawText(chartName, cx, cy + subPaint.textSize * 1.5f, smallPaint)
+            drawText(dateLabel, cx, cy + subPaint.textSize * 0.3f, subPaint)
+            drawText("Sidereal LAHIRI", cx, cy + subPaint.textSize * 1.4f, smallPaint)
+            if (placeLabel.isNotEmpty()) {
+                drawText(placeLabel, cx, cy + subPaint.textSize * 2.4f, smallPaint)
             }
-            drawText("$dateLabel · Lahiri", cx, cy + subPaint.textSize * 2.5f, smallPaint)
         }
         // Markers: natal planets (labelled dots) + current Moon day 1/2.
         fun markerAngle(n28: Int): Double =
