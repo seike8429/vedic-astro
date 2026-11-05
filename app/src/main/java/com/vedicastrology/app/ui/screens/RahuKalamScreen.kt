@@ -412,9 +412,10 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
         }
 
         // Planets: the displayed set (ဇာတာ or လက်ရှိ, following the toggle),
-        // one line per planet — ဂြိုလ် | နက္ခတ် | ပါဒ | သရ | အပိုင်း
+        // one line per planet — ဂြိုလ် | နက္ခတ် | ပါဒ | သရ | အပိုင်း | ဒသဂ္ဂ
         // (author's format; အပိုင်း = which of the 6 Sayagyi parts the
-        // planet's nakshatra falls in, so the 6-part table is not needed).
+        // planet's nakshatra falls in; ဒသဂ္ဂ = which of the 10 Dasagga
+        // groups it falls in, e.g. နိဖ္ဖလ).
         item {
             Text(
                 if (showTransit) "ဂြိုလ် — လက်ရှိ (now)" else "ဂြိုလ် — ဇာတာ",
@@ -424,15 +425,17 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(4.dp)) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
-                        Text("ဂြိုလ်", Modifier.weight(0.8f), fontWeight = FontWeight.Bold,
+                        Text("ဂြိုလ်", Modifier.weight(0.7f), fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium)
-                        Text("နက္ခတ်", Modifier.weight(1.2f), fontWeight = FontWeight.Bold,
+                        Text("နက္ခတ်", Modifier.weight(1.1f), fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium)
-                        Text("ပါဒ", Modifier.weight(0.4f), fontWeight = FontWeight.Bold,
+                        Text("ပါဒ", Modifier.weight(0.35f), fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium)
-                        Text("သရ", Modifier.weight(0.5f), fontWeight = FontWeight.Bold,
+                        Text("သရ", Modifier.weight(0.45f), fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium)
-                        Text("အပိုင်း", Modifier.weight(0.8f), fontWeight = FontWeight.Bold,
+                        Text("အပိုင်း", Modifier.weight(0.7f), fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyMedium)
+                        Text("ဒသဂ္ဂ", Modifier.weight(0.7f), fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium)
                     }
                     HorizontalDivider()
@@ -447,30 +450,36 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                         "Sun", "Moon", "Mars", "Mercury", "Jupiter",
                         "Venus", "Saturn", "Rahu", "Ketu"
                     )
+                    val partGroups = RahuKalam.dasaggaGroups(displayWheel.mouthStart28)
                     order.forEachIndexed { idx, name ->
                         val lon = displayByName[name]
                         val (n28, pada) = if (lon == null) 0 to 0 else RahuKalam.padaOf(lon)
                         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
-                            Text(planetMm[name] ?: name, Modifier.weight(0.8f),
+                            Text(planetMm[name] ?: name, Modifier.weight(0.7f),
                                 style = MaterialTheme.typography.bodyMedium)
                             Text(
                                 if (lon == null) "—" else RahuKalam.name28(n28),
-                                Modifier.weight(1.2f),
+                                Modifier.weight(1.1f),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Text(
                                 if (lon == null || n28 == 22) "—" else "$pada",
-                                Modifier.weight(0.4f),
+                                Modifier.weight(0.35f),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Text(
                                 if (lon == null) "—" else RahuKalam.syllableOf(lon),
-                                Modifier.weight(0.5f),
+                                Modifier.weight(0.45f),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Text(
                                 if (lon == null) "—" else displayWheel.partOf(n28).mm,
-                                Modifier.weight(0.8f),
+                                Modifier.weight(0.7f),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                if (lon == null) "—" else partGroups.firstOrNull { n28 in it.numbers }?.mm ?: "—",
+                                Modifier.weight(0.7f),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
