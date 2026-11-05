@@ -608,8 +608,8 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
  * outermost white pada ring (108 pada syllables, သရ — e.g. Magha
  * မ မိ မု မေ), bright-yellow ring of 28 nakshatra NAMES (replacing
  * the numerals, v1.8.30 at the author's order),
- * mauve-pink Dasagga group ring (10 groups, names along the arc),
- * blue Dasagga group segments (one per group, names along the arc),
+ * blue Dasagga group segments (one per group, names along the arc —
+ * the pink group ring was removed in v1.8.43, it repeated the names),
  * light-green ground, a yellow diamond divided into the 6 Sayagyi
  * parts (mouth pink triangle at the top, anus pink triangle at the
  * bottom, head left, chest top-right, belly bottom-right, tail
@@ -642,7 +642,6 @@ private fun RahuKalamWheel(
         // Cover colours.
         val coverGreen = Color(0xFFC5E1A5)
         val coverYellow = Color(0xFFFFEB3B)
-        val coverPink = Color(0xFFD69AAE)
         val coverBlue = Color(0xFF8EA6DB)
         val diamondYellow = Color(0xFFFFF9A8)
         val trianglePink = Color(0xFFF8BBD0)
@@ -757,48 +756,21 @@ private fun RahuKalamWheel(
             style = Stroke(width = 2f)
         )
 
-        // ---- Pink Dasagga group ring (10 groups, names along the arc) ----
-        val groupR = R * 0.83f
-        val groupW = R * 0.07f
-        RahuKalam.dasaggaGroups(wheel.mouthStart28).forEach { group ->
-            val first = group.numbers.first()
-            val start = cellStart(first)
-            val sweep = group.numbers.size * 360.0 / 28.0
-            drawArc(
-                color = coverPink, startAngle = (start - 90f).toFloat(),
-                sweepAngle = sweep.toFloat(), useCenter = false,
-                topLeft = Offset(cx - groupR, cy - groupR),
-                size = Size(groupR * 2, groupR * 2),
-                style = Stroke(width = groupW)
-            )
-            drawLine(
-                color = Color.Black,
-                start = Offset(px(groupR - groupW / 2f, start), py(groupR - groupW / 2f, start)),
-                end = Offset(px(groupR + groupW / 2f, start), py(groupR + groupW / 2f, start)),
-                strokeWidth = 2f
-            )
-            val mid = norm360(start + sweep / 2.0)
-            drawArcLabel(
-                group.mm, mid, groupR, size.minDimension * 0.020f, cx, cy, bold = true
-            )
-        }
-        drawCircle(
-            color = Color.Black, radius = R * 0.795f, center = Offset(cx, cy),
-            style = Stroke(width = 2f)
-        )
-
-        // ---- Blue Dasagga group segments (diamond edge .. pink ring) ----
+        // ---- Blue Dasagga group segments (diamond edge .. yellow ring) ----
+        // The pink group ring was removed in v1.8.43 (group names repeated
+        // there and in these segments), so the segments now extend out to
+        // the yellow ring's inner edge.
         RahuKalam.dasaggaGroups(wheel.mouthStart28).forEach { group ->
             val first = group.numbers.first()
             val start = cellStart(first)
             val sweep = group.numbers.size * 360.0 / 28.0
             val end = start + sweep
             val path = androidx.compose.ui.graphics.Path().apply {
-                // Outer arc (pink-ring radius).
+                // Outer arc (yellow-ring inner radius).
                 val steps = maxOf(4, (sweep / 2.0).toInt())
                 for (i in 0..steps) {
                     val a = start + sweep * i / steps
-                    val p = Offset(px(R * 0.795f, a), py(R * 0.795f, a))
+                    val p = Offset(px(R * 0.865f, a), py(R * 0.865f, a))
                     if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y)
                 }
                 // Inner boundary (diamond edge), back to the start.
@@ -814,7 +786,7 @@ private fun RahuKalamWheel(
             drawPath(path = path, color = Color.Black, style = Stroke(width = 2f))
             // Group name, along the arc, midway between diamond and ring.
             val mid = norm360(start + sweep / 2.0)
-            val midR = (R * 0.795f + diamondR(mid)) / 2f
+            val midR = (R * 0.865f + diamondR(mid)) / 2f
             drawArcLabel(
                 group.mm, mid, midR, size.minDimension * 0.020f, cx, cy, bold = true
             )
