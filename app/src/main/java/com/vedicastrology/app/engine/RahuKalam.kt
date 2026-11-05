@@ -108,12 +108,14 @@ object RahuKalam {
     private fun wrap28(n: Int): Int = ((n - 1) % 28 + 28) % 28 + 1
 
     /**
-     * The ten Dasagga (ဒသဂ္ဂ) groups, from the book's group table
-     * (nakshatra numbers in the 28-system, Ashwini = 1, Abhijit = 22).
-     * The group names for [7,8,9] and [10] are read as ပုဗ္ဗ and မော
-     * from the book's note (variant list) and the ZarTarPro photo —
-     * the author can correct them. Used for the group ring of the
-     * ZarTarPro-style wheel.
+     * The ten Dasagga (ဒသဂ္ဂ) groups, from the book's GROUP TABLE
+     * (nakshatra numbers in the 28-system, Ashwini = 1, Abhijit = 22;
+     * the book writes Abhijit as X between 21 and 22, so its 22, 23,
+     * 24, 25, 26, 27 are our 23, 24, 25, 26, 27, 28). Used for the
+     * group ring of the ZarTarPro-style wheel. Note: the book's note
+     * list also gives the variant names ဂူဒ, ပုဗ္ဗ, မော (and ဇီဝိ) —
+     * ဂူဒ is associated with nakshatra 24 (the ရာဇေ group); the table
+     * names below are the authority unless the author corrects them.
      */
     data class DasaggaGroup(val mm: String, val numbers: List<Int>)
 
@@ -122,12 +124,12 @@ object RahuKalam {
         DasaggaGroup("ဖလိတ", listOf(14, 15, 16, 17)),
         DasaggaGroup("နိဖလ", listOf(18, 19, 20)),
         DasaggaGroup("ဇ္ဇိုတ", listOf(21, 22, 23)),
-        DasaggaGroup("ဂူဒ", listOf(24)),
-        DasaggaGroup("ရာဇေ", listOf(25, 26, 27)),
-        DasaggaGroup("ဌာသ", listOf(28, 1, 2)),
-        DasaggaGroup("ထာမသ", listOf(3, 4, 5, 6)),
-        DasaggaGroup("ပုဗ္ဗ", listOf(7, 8, 9)),
-        DasaggaGroup("မော", listOf(10))
+        DasaggaGroup("ရာဇေ", listOf(24)),
+        DasaggaGroup("ဌာသ", listOf(25, 26, 27)),
+        DasaggaGroup("ထာမသ", listOf(28, 1, 2)),
+        DasaggaGroup("ပူ", listOf(3, 4, 5, 6)),
+        DasaggaGroup("မတ", listOf(7, 8, 9)),
+        DasaggaGroup("ဇီဝ", listOf(10))
     )
 
     /** Burmese numeral for a number 1-28 (ZarTarPro writes numerals this way). */
