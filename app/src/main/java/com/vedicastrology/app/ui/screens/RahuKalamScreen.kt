@@ -72,6 +72,8 @@ private data class Reading(
     val natalRahuLon: Double,
     /** Natal planets as (name, sidereal longitude), Lagna excluded. */
     val natalPlanets: List<Pair<String, Double>>,
+    /** Current-sky (transit) planets as (name, sidereal longitude). */
+    val transitPlanets: List<Pair<String, Double>>,
     val moon1Lon: Double,
     val moon2Lon: Double,
     val wheel: RahuKalam.SayagyiWheel,
@@ -137,8 +139,16 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                 val jd2 = RahuKalam.jdFromMillis(now + 24L * 60 * 60 * 1000)
                 val moon1 = Ephemeris.planetPosition(jd1, "Moon", useTrueRahu).first
                 val moon2 = Ephemeris.planetPosition(jd2, "Moon", useTrueRahu).first
+                // Current-sky (transit) planets, same ayanamsa + node setting.
+                val transitNames = listOf(
+                    "Sun", "Moon", "Mars", "Mercury", "Jupiter",
+                    "Venus", "Saturn", "Rahu", "Ketu"
+                )
+                val transit = transitNames.map { name ->
+                    name to Ephemeris.planetPosition(jd1, name, useTrueRahu).first
+                }
                 Reading(
-                    now, now + 24L * 60 * 60 * 1000, rahuLon, planets,
+                    now, now + 24L * 60 * 60 * 1000, rahuLon, planets, transit,
                     moon1, moon2, RahuKalam.sayagyiWheel(rahuLon), useTrueRahu
                 )
             }
@@ -182,11 +192,12 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
         val moon2Part = r.wheel.partOf(moon2N28)
         val verdict2 = RahuKalam.day2Verdict(moon2Part)
 
-        // Circular wheel, ZarTarPro style.
+        // Circular wheel, ZarTarPro style — natal (filled) + now (hollow).
         item {
             RahuKalamWheel(
                 wheel = r.wheel,
                 natalPlanets = r.natalPlanets,
+                transitPlanets = r.transitPlanets,
                 moon1N28 = moon1N28,
                 moon2N28 = moon2N28,
                 chartName = chartName,
@@ -195,6 +206,11 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                 placeLabel = birth.placeName,
                 modifier = Modifier.fillMaxWidth().aspectRatio(1f)
             )
+            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
+                Text("● ဇာတာ (natal)", style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(end = 12.dp))
+                Text("○ လက်ရှိ ကောင်းကင် (now)", style = MaterialTheme.typography.bodySmall)
+            }
             Spacer(Modifier.height(12.dp))
         }
 
@@ -298,11 +314,102 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                     "ကျန်းမာရေး၊ အိမ်ထောင်ရေး၊ အချစ်အဆိုင်) ကို စာအုပ်ကနေ နောက်ဗားရှင်းမှာ ထည့်ပါမည်။",
                 style = MaterialTheme.typography.bodySmall
             )
+            Spacer(Modifier.height(12.dp))
+        }
+
+        // Planets: natal vs now (transit), with nakshatra + pada + သရ.
+        item {
+            Text("ဂြိုလ် — ဇာတာ နှင့် လက်ရှိ", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(4.dp))
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(4.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
+                        Text("ဂြိုလ်", Modifier.weight(0.7f), fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyMedium)
+                        Text("ဇာတာ", Modifier.weight(1.15f), fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyMedium)
+                        Text("လက်ရှိ (now)", Modifier.weight(1.15f), fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyMedium)
+                    }
+                    HorizontalDivider()
+                    val planetMm = mapOf(
+                        "Sun" to "နေ", "Moon" to "လ", "Mars" to "အင်္ဂါ",
+                        "Mercury" to "ဗုဒ္ဓဟူး", "Jupiter" to "ကြာသပတေး",
+                        "Venus" to "သောကြာ", "Saturn" to "စနေ",
+                        "Rahu" to "ရာဟု", "Ketu" to "ကေတု"
+                    )
+                    val natalByName = r.natalPlanets.toMap()
+                    val transitByName = r.transitPlanets.toMap()
+                    val order = listOf(
+                        "Sun", "Moon", "Mars", "Mercury", "Jupiter",
+                        "Venus", "Saturn", "Rahu", "Ketu"
+                    )
+                    order.forEachIndexed { idx, name ->
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
+                            Text(planetMm[name] ?: name, Modifier.weight(0.7f),
+                                style = MaterialTheme.typography.bodyMedium)
+                            Text(planetCell(natalByName[name]), Modifier.weight(1.15f),
+                                style = MaterialTheme.typography.bodyMedium)
+                            Text(planetCell(transitByName[name]), Modifier.weight(1.15f),
+                                style = MaterialTheme.typography.bodyMedium)
+                        }
+                        if (idx < order.size - 1) HorizontalDivider()
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+        }
+
+        // Dasagga groups: which nakshatras are in each group.
+        item {
+            Text("ဒသဂ္ဂ အဖွဲ့ ၁၀ ခု", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(4.dp))
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(4.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
+                        Text("အဖွဲ့", Modifier.weight(0.8f), fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyMedium)
+                        Text("နက္ခတ်", Modifier.weight(2.2f), fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyMedium)
+                    }
+                    HorizontalDivider()
+                    RahuKalam.DASAGGA_GROUPS.forEachIndexed { idx, group ->
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
+                            Text(group.mm, Modifier.weight(0.8f),
+                                style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                group.numbers.joinToString(", ") {
+                                    "${RahuKalam.name28(it)} (${RahuKalam.burmeseNum(it)})"
+                                },
+                                Modifier.weight(2.2f),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                        if (idx < RahuKalam.DASAGGA_GROUPS.size - 1) HorizontalDivider()
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "သရ (ပါဒ သင်္ကေတ) များမှာ စံ သင်္ကေတ များကို မြန်မာလို ရေးထားခြင်း ဖြစ်သည် — " +
+                    "မာဃ မ/မိ/မု/မေ ကို ဆရာ အတည်ပြုပြီးသား။ စာအုပ်နဲ့ ကွဲတဲ့ စာလုံးပေါင်း ရှိရင် ပြင်ပေးပါ။",
+                style = MaterialTheme.typography.bodySmall
+            )
             Spacer(Modifier.height(8.dp))
             Button(onClick = { refreshKey++ }) { Text("ပြန်တွက်") }
             Spacer(Modifier.height(24.dp))
         }
     }
+}
+
+/** One planet's cell: nakshatra name (number) · pada number (သရ). */
+private fun planetCell(lon: Double?): String {
+    if (lon == null) return "—"
+    val (n28, pada) = RahuKalam.padaOf(lon)
+    val syllable = RahuKalam.syllableOf(lon)
+    val padaText = if (n28 == 22) "ပါဒ" else "$pada ပါဒ"
+    return "${RahuKalam.name28(n28)} (${RahuKalam.burmeseNum(n28)}) · " +
+        "$padaText ($syllable)"
 }
 
 /** One label/value row of the summary table. */
@@ -332,6 +439,7 @@ private fun TableRow(label: String, value: String, boldValue: Boolean = false) {
 private fun RahuKalamWheel(
     wheel: RahuKalam.SayagyiWheel,
     natalPlanets: List<Pair<String, Double>>,
+    transitPlanets: List<Pair<String, Double>>,
     moon1N28: Int,
     moon2N28: Int,
     chartName: String,
@@ -442,40 +550,89 @@ private fun RahuKalamWheel(
             }
         }
 
-        // ---- Planet markers (coloured circles, Burmese glyph) ----
-        val markerR = R * 0.70f
-        fun markerPos(n28: Int): Offset {
+        // ---- Planet markers: natal (filled) + now/transit (hollow) ----
+        // Each marker carries its pada syllable (သရ) just clockwise of it.
+        val natalR = R * 0.73f
+        val transitR = R * 0.66f
+        fun markerPos(r: Float, n28: Int): Offset {
             val mid = cellMid(n28)
-            return Offset(px(markerR, mid), py(markerR, mid))
+            return Offset(px(r, mid), py(r, mid))
         }
-        natalPlanets.forEach { (name, lon) ->
+        /** Draw one marker + its သရ (offset clockwise along the arc). */
+        fun planetMarker(name: String, lon: Double, r: Float, filled: Boolean) {
             val n28 = RahuKalam.nakshatra28(lon)
-            val pos = markerPos(n28)
+            val pos = markerPos(r, n28)
             val color = PLANET_COLORS[name] ?: Color.Gray
-            drawCircle(color = color, radius = size.minDimension * 0.023f, center = pos)
-            drawCircle(
-                color = Color.White, radius = size.minDimension * 0.023f, center = pos,
-                style = Stroke(width = 2f)
-            )
+            val radius = size.minDimension * 0.022f
+            if (filled) {
+                drawCircle(color = color, radius = radius, center = pos)
+                drawCircle(
+                    color = Color.White, radius = radius, center = pos,
+                    style = Stroke(width = 2f)
+                )
+            } else {
+                drawCircle(color = Color.White, radius = radius, center = pos)
+                drawCircle(
+                    color = color, radius = radius, center = pos,
+                    style = Stroke(width = 3f)
+                )
+            }
             drawContext.canvas.nativeCanvas.apply {
-                val paint = android.graphics.Paint().apply {
-                    this.color = android.graphics.Color.WHITE
-                    textSize = size.minDimension * 0.026f
+                val glyphPaint = android.graphics.Paint().apply {
+                    this.color = if (filled) {
+                        android.graphics.Color.WHITE
+                    } else {
+                        // Hollow (transit) marker: glyph in the planet colour.
+                        android.graphics.Color.rgb(
+                            (color.red * 255).toInt(),
+                            (color.green * 255).toInt(),
+                            (color.blue * 255).toInt()
+                        )
+                    }
+                    textSize = size.minDimension * 0.024f
                     textAlign = android.graphics.Paint.Align.CENTER
                     isFakeBoldText = true
                 }
-                drawText(PLANET_GLYPHS[name] ?: "?", pos.x, pos.y + paint.textSize / 3f, paint)
+                drawText(
+                    PLANET_GLYPHS[name] ?: "?", pos.x,
+                    pos.y + glyphPaint.textSize / 3f, glyphPaint
+                )
+                // သရ, just clockwise of the marker (tangent direction).
+                val mid = cellMid(n28)
+                val theta = Math.toRadians(mid)
+                val sx = pos.x + (R * 0.065f * cos(theta)).toFloat()
+                val sy = pos.y + (R * 0.065f * sin(theta)).toFloat()
+                val saraPaint = android.graphics.Paint().apply {
+                    this.color = android.graphics.Color.BLACK
+                    textSize = size.minDimension * 0.017f
+                    textAlign = android.graphics.Paint.Align.CENTER
+                    isFakeBoldText = true
+                }
+                drawText(
+                    RahuKalam.syllableOf(lon), sx,
+                    sy + saraPaint.textSize / 3f, saraPaint
+                )
             }
         }
-        // Current Moon day 1 (blue ring) / day 2 (green ring).
-        fun moonRing(n28: Int, color: Color) {
-            val pos = markerPos(n28)
+        natalPlanets.forEach { (name, lon) -> planetMarker(name, lon, natalR, filled = true) }
+        transitPlanets.forEach { (name, lon) -> planetMarker(name, lon, transitR, filled = false) }
+        // Current Moon day 1 (blue ring) / day 2 (green ring), around the
+        // TRANSIT Moon marker (day 1 / day 2 Moon is the current Moon).
+        val transitMoonLon = transitPlanets.firstOrNull { it.first == "Moon" }?.second
+        if (transitMoonLon != null) {
+            val pos = markerPos(transitR, RahuKalam.nakshatra28(transitMoonLon))
             drawCircle(
-                color = color, radius = size.minDimension * 0.030f, center = pos,
+                color = Color(0xFF1565C0), radius = size.minDimension * 0.029f,
+                center = pos, style = Stroke(width = 3f)
+            )
+        }
+        fun moonRing(n28: Int, color: Color) {
+            val pos = markerPos(transitR, n28)
+            drawCircle(
+                color = color, radius = size.minDimension * 0.029f, center = pos,
                 style = Stroke(width = 3f)
             )
         }
-        moonRing(moon1N28, Color(0xFF1565C0))
         moonRing(moon2N28, Color(0xFF2E7D32))
 
         // ---- Dasagga group ring (10 coloured arcs, names along the arc) ----
