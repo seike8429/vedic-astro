@@ -11,8 +11,8 @@ android {
         applicationId = "com.vedicastrology.app"
         minSdk = 24
         targetSdk = 37
-        versionCode = 234
-        versionName = "1.8.54"
+        versionCode = 235
+        versionName = "1.8.55"
 
         vectorDrawables { useSupportLibrary = true }
     }

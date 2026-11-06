@@ -700,14 +700,15 @@ private fun RahuKalamWheel(
         drawCircle(color = coverGreen, radius = R * 0.99f, center = Offset(cx, cy))
 
         // ---- Outermost pada ring: 108 pada syllables (သရ), as in the book ----
-        // One segment per pada (4 per nakshatra, 3 for Uttara Ashadha, 1 for
-        // Abhijit), each showing its syllable — e.g. Magha: မ မိ မု မေ.
+        // One segment per syllable — all 4 per nakshatra cell, even for
+        // Uttara Ashadha (ဇီ) and Abhijit (ဂျေ/ဂျော/ခ), at the author's
+        // order (2026-11-06: "စက်ဝိုင်းမှာမပါသေး"). E.g. Magha: မ မီ မု မေ.
         val padaR = R * 0.962f
         val padaW = R * 0.05f
         for (n in 1..28) {
             val start = cellStart(n)
             val cellW = cellWidth(n)
-            val count = RahuKalam.padaCount(n)
+            val count = RahuKalam.PADA_SYLLABLES[n - 1].size
             for (p in 0 until count) {
                 val pStart = start + p * cellW / count
                 val pSweep = cellW / count
