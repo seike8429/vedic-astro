@@ -604,49 +604,61 @@ private fun RahuKalamWheel(
         fun py(r: Float, deg: Double) = cy + (r * sin(rad(deg))).toFloat()
         fun norm360(a: Double) = ((a % 360.0) + 360.0) % 360.0
 
-        // Angles: the mouth's nakshatra is centred at the top (0 deg) and
-        // the anus's nakshatra is centred exactly at the bottom (180 deg),
-        // as the book requires — ဇီဝ and ဂူဒ are 180 deg apart. The
-        // nakshatras are placed by their OFFSET from the mouth, not by
-        // equal 360/28 cells: the mouth->anus half holds d steps of w1
-        // deg each, the anus->mouth half holds 27-d steps of w2 deg each,
-        // where d is the anus offset (14 normally, 15 when Abhijit shifts
-        // it). When d == 14 this is exactly the old equal-cell wheel
-        // (w1 == w2 == 360/28); when d == 15 the halves differ slightly
-        // (12 deg vs 14 deg) so the mouth/anus opposition stays exact.
-        // (v1.8.49: the equal-cell wheel put the anus 12.857 deg past the
-        // bottom in the natal chart — ဆရာ: "ဇီဝ ဂူဒ 180 မဖြစ် ပုံမှာ".)
+        // Angles (v1.8.51): the PARTS are laid out so that every pair of
+        // opposite part boundaries is exactly 180 deg apart, so every
+        // line through the centre is straight. The mouth (top) and anus
+        // (bottom) are centred at 0/180 deg; the CHEST/BELLY boundary
+        // sits at 90 deg and the TAIL/HEAD boundary at 270 deg — on the
+        // diamond's horizontal diagonal. Opposite parts share one
+        // angular width (MOUTH==ANUS, CHEST==TAIL, BELLY==HEAD), each
+        // proportional to the pair's mean cell count, so the cells stay
+        // near-equal in size; cells are spread evenly inside their part.
+        // (v1.8.50's offset layout kept the mouth/anus opposition but
+        // left the CHEST/BELLY vs TAIL/HEAD line bent by 12.857 deg in
+        // the transit wheel — ဆရာ: "I mean this line".)
         val mouthN28 = wheel.parts
             .first { it.part == RahuKalam.WheelPart.MOUTH }.numbers.first()
-        val anusN28 = wheel.parts
-            .first { it.part == RahuKalam.WheelPart.ANUS }.numbers.first()
-        val anusOff = (anusN28 - mouthN28 + 28) % 28
-        val w1 = 180.0 / anusOff
-        val w2 = (180.0 - w1) / (27 - anusOff)
-        /** Offset of a nakshatra number from the mouth (0..27). */
-        fun off(n28: Int) = (n28 - mouthN28 + 28) % 28
-        /** Angle (clockwise from top) of a nakshatra's cell centre. */
-        fun cellAngle(n28: Int): Double {
-            val o = off(n28)
-            return when {
-                o == 0 -> 0.0
-                o < anusOff -> o * w1
-                o == anusOff -> 180.0
-                else -> 180.0 + w1 / 2.0 + (o - anusOff - 0.5) * w2
-            }
-        }
+        val partSize = wheel.parts.associate { it.part to it.numbers.size }
+        val cellUnit = 360.0 / 28.0
+        val mouthW = cellUnit // mouth and anus: 1 cell each
+        val chestW = cellUnit * (partSize[RahuKalam.WheelPart.CHEST]!!
+            + partSize[RahuKalam.WheelPart.TAIL]!!) / 2.0
+        val bellyW = cellUnit * (partSize[RahuKalam.WheelPart.BELLY]!!
+            + partSize[RahuKalam.WheelPart.HEAD]!!) / 2.0
+        /** Start angle (clockwise from top) of each part. */
+        val partStart = mapOf(
+            RahuKalam.WheelPart.MOUTH to norm360(-mouthW / 2.0),
+            RahuKalam.WheelPart.CHEST to mouthW / 2.0,
+            RahuKalam.WheelPart.BELLY to mouthW / 2.0 + chestW,
+            RahuKalam.WheelPart.ANUS to 180.0 - mouthW / 2.0,
+            RahuKalam.WheelPart.TAIL to 180.0 + mouthW / 2.0,
+            RahuKalam.WheelPart.HEAD to 180.0 + mouthW / 2.0 + chestW
+        )
+        /** Angular width of each part. */
+        val partWidth = mapOf(
+            RahuKalam.WheelPart.MOUTH to mouthW,
+            RahuKalam.WheelPart.CHEST to chestW,
+            RahuKalam.WheelPart.BELLY to bellyW,
+            RahuKalam.WheelPart.ANUS to mouthW,
+            RahuKalam.WheelPart.TAIL to chestW,
+            RahuKalam.WheelPart.HEAD to bellyW
+        )
+        /** The part a nakshatra belongs to. */
+        fun partOf(n28: Int) = wheel.parts.first { n28 in it.numbers }
         /** Angle (clockwise from top) of a nakshatra's cell start. */
         fun cellStart(n28: Int): Double {
-            val o = off(n28)
-            return when {
-                o == 0 -> norm360(-w1 / 2.0)
-                o < anusOff -> (o - 0.5) * w1
-                o == anusOff -> 180.0 - w1 / 2.0
-                else -> 180.0 + w1 / 2.0 + (o - anusOff - 1) * w2
-            }
+            val entry = partOf(n28)
+            val idx = entry.numbers.indexOf(n28)
+            val w = partWidth[entry.part]!! / entry.numbers.size
+            return norm360(partStart[entry.part]!! + idx * w)
         }
-        /** Width of a nakshatra's cell (w1 in the mouth->anus half, w2 after). */
-        fun cellWidth(n28: Int) = if (off(n28) <= anusOff) w1 else w2
+        /** Width of a nakshatra's cell (its part's width, shared evenly). */
+        fun cellWidth(n28: Int): Double {
+            val entry = partOf(n28)
+            return partWidth[entry.part]!! / entry.numbers.size
+        }
+        /** Angle (clockwise from top) of a nakshatra's cell centre. */
+        fun cellAngle(n28: Int) = norm360(cellStart(n28) + cellWidth(n28) / 2.0)
         /** Sweep of a contiguous run of nakshatras (a group or a part). */
         fun spanSweep(numbers: List<Int>): Double {
             val start = cellStart(numbers.first())
