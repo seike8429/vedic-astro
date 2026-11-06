@@ -526,10 +526,13 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
-                                    // 4 သရ per nakshatra (3 for Uttara
-                                    // Ashadha, 1 for Abhijit), one row.
+                                    // All 4 သရ per nakshatra, as in the
+                                    // author's reference table — even
+                                    // Uttara Ashadha's ဇီ and Abhijit's
+                                    // ဂျေ/ဂျော/ခ. (The wheel's pada ring
+                                    // still shows only the padas that
+                                    // fit: 3 and 1.)
                                     RahuKalam.PADA_SYLLABLES[n - 1]
-                                        .take(RahuKalam.padaCount(n))
                                         .joinToString(", "),
                                     Modifier.weight(1.7f),
                                     style = MaterialTheme.typography.bodyMedium
@@ -543,7 +546,7 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
             Spacer(Modifier.height(8.dp))
             Text(
                 "သရ (ပါဒ သင်္ကေတ) များမှာ စံ သင်္ကေတ များကို မြန်မာလို ရေးထားခြင်း ဖြစ်သည် — " +
-                    "မာဃ မ/မိ/မု/မေ ကို ဆရာ အတည်ပြုပြီးသား။ စာအုပ်နဲ့ ကွဲတဲ့ စာလုံးပေါင်း ရှိရင် ပြင်ပေးပါ။",
+                    "မာဃ မ/မီ/မု/မေ ကို ဆရာ အတည်ပြုပြီးသား။ စာအုပ်နဲ့ ကွဲတဲ့ စာလုံးပေါင်း ရှိရင် ပြင်ပေးပါ။",
                 style = MaterialTheme.typography.bodySmall
             )
             Spacer(Modifier.height(8.dp))
