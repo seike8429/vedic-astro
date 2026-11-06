@@ -192,8 +192,9 @@ object RahuKalam {
     // သရ (pada syllables) — the author's table, 2026-11-06: correct
     // Myanmar spellings per the original Sanskrit pronunciations
     // (replacing the mixed-up numerals/English letters/font errors in
-    // the old table). Shravana pada 4 is ဃ (Gha) per his romanization.
-    // Abhijit lists all 4 but the wheel gives it 1 pada (3°20'), so
+    // the old table). Shravana pada 4 is ဇ — confirmed by him
+    // 2026-11-06 ("ဇ က အမှန်"). Abhijit lists all 4 but the wheel
+    // gives it 1 pada (3°20'), so
     // only ဂျု is ever used.
     val PADA_SYLLABLES = listOf(
         listOf("ချု", "ချေ", "ချော", "လာ"),    // 1 Ashwini
@@ -218,7 +219,7 @@ object RahuKalam {
         listOf("ဘု", "ဓ", "ဖ", "ဎ"),           // 20 Purva Ashadha
         listOf("ဘေ", "ဘော", "ဇ", "ဇီ"),       // 21 Uttara Ashadha
         listOf("ဂျု", "ဂျေ", "ဂျော", "ခ"),    // 22 Abhijit (1 pada used)
-        listOf("ဇု", "ဇေ", "ဇော", "ဃ"),       // 23 Shravana
+        listOf("ဇု", "ဇေ", "ဇော", "ဇ"),       // 23 Shravana
         listOf("ဂ", "ဂီ", "ဂု", "ဂေ"),         // 24 Dhanishta
         listOf("ဂေါ", "သ", "သီ", "သု"),       // 25 Shatabhisha
         listOf("သေ", "သော", "ဒ", "ဒီ"),       // 26 Purva Bhadrapada
