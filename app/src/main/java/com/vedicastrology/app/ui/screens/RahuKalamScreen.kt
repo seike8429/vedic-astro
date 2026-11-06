@@ -151,7 +151,9 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                     .first { it.row.planet == "Rahu" }.row.longitude
                 val planets = natal.planets
                     .filter { it.row.planet in PLANET_GLYPHS }
-                    .map { it.row.planet to it.row.longitude }
+                    .map { it.row.planet to it.row.longitude } +
+                    // Ascendant (Lagna) first, as in the main chart.
+                    listOf("Ascendant" to natal.ascendant)
                 val now = System.currentTimeMillis()
                 val jd1 = RahuKalam.jdFromMillis(now)
                 val jd2 = RahuKalam.jdFromMillis(now + 24L * 60 * 60 * 1000)
@@ -164,7 +166,13 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                 )
                 val transit = transitNames.map { name ->
                     name to Ephemeris.planetPosition(jd1, name, useTrueRahu).first
-                }
+                } + listOf(
+                    // Transit ascendant, cast for the birth place — the
+                    // ascendant needs a location, unlike the planets.
+                    "Ascendant" to Ephemeris.houses(
+                        jd1, birth.latitude, birth.longitude
+                    ).first
+                )
                 // Transit wheel: mouth = the nakshatra CURRENT Rahu occupies.
                 val transitRahuLon = transit.first { it.first == "Rahu" }.second
                 Reading(
@@ -440,6 +448,7 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                     }
                     HorizontalDivider()
                     val planetMm = mapOf(
+                        "Ascendant" to "လက္ဂန်",
                         "Sun" to "နေ", "Moon" to "လ", "Mars" to "အင်္ဂါ",
                         "Mercury" to "ဗုဒ္ဓဟူး", "Jupiter" to "ကြာသပတေး",
                         "Venus" to "သောကြာ", "Saturn" to "စနေ",
@@ -447,7 +456,7 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                     )
                     val displayByName = (if (showTransit) r.transitPlanets else r.natalPlanets).toMap()
                     val order = listOf(
-                        "Sun", "Moon", "Mars", "Mercury", "Jupiter",
+                        "Ascendant", "Sun", "Moon", "Mars", "Mercury", "Jupiter",
                         "Venus", "Saturn", "Rahu", "Ketu"
                     )
                     val partGroups = RahuKalam.dasaggaGroups(displayWheel)
