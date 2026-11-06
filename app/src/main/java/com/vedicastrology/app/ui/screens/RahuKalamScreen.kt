@@ -448,7 +448,7 @@ fun RahuKalamScreen(natal: ChartResult, birth: BirthData, chartName: String, use
                     }
                     HorizontalDivider()
                     val planetMm = mapOf(
-                        "Ascendant" to "လက္ဂန်",
+                        "Ascendant" to "လဂ်",
                         "Sun" to "နေ", "Moon" to "လ", "Mars" to "အင်္ဂါ",
                         "Mercury" to "ဗုဒ္ဓဟူး", "Jupiter" to "ကြာသပတေး",
                         "Venus" to "သောကြာ", "Saturn" to "စနေ",
