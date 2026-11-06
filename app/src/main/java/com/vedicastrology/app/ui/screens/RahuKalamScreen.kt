@@ -662,6 +662,24 @@ private fun RahuKalamWheel(
             val t = Math.toRadians(degClockwiseFromTop)
             return (D / (kotlin.math.abs(sin(t)) + kotlin.math.abs(cos(t)))).toFloat()
         }
+        /** Sample angles for an arc along the diamond edge, including the
+         *  diamond's vertices (0/90/180/270 deg) inside the arc so the
+         *  corners stay sharp instead of being cut across. (v1.8.50: in
+         *  the transit wheel the part boundaries sit at 6.429 deg etc.,
+         *  so plain 2-deg sampling never hit 90/270 deg and the square's
+         *  left and right corners came out chamfered — "line is bent".) */
+        fun diamondArcAngles(start: Double, sweep: Double): List<Double> {
+            val end = start + sweep
+            val angles = mutableListOf<Double>()
+            val steps = maxOf(4, (sweep / 2.0).toInt())
+            for (i in 0..steps) angles.add(start + sweep * i / steps)
+            for (v in listOf(0.0, 90.0, 180.0, 270.0, 360.0)) {
+                var vv = v
+                while (vv < start) vv += 360.0
+                if (vv <= end) angles.add(vv)
+            }
+            return angles.sorted()
+        }
 
         // ---- Green ground (whole wheel) ----
         drawCircle(color = coverGreen, radius = R * 0.99f, center = Offset(cx, cy))
@@ -761,8 +779,7 @@ private fun RahuKalamWheel(
                     if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y)
                 }
                 // Inner boundary (diamond edge), back to the start.
-                for (i in steps downTo 0) {
-                    val a = start + sweep * i / steps
+                for (a in diamondArcAngles(start, sweep).reversed()) {
                     val rr = diamondR(a)
                     val p = Offset(px(rr, a), py(rr, a))
                     lineTo(p.x, p.y)
@@ -795,9 +812,7 @@ private fun RahuKalamWheel(
             val end = start + sweep
             val path = androidx.compose.ui.graphics.Path().apply {
                 moveTo(cx, cy)
-                val steps = maxOf(4, (sweep / 2.0).toInt())
-                for (i in 0..steps) {
-                    val a = start + sweep * i / steps
+                for (a in diamondArcAngles(start, sweep)) {
                     val rr = diamondR(a)
                     val p = Offset(px(rr, a), py(rr, a))
                     lineTo(p.x, p.y)
