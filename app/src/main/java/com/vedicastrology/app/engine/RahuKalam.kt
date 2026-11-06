@@ -183,41 +183,47 @@ object RahuKalam {
 
     /**
      * Pada (သရ) syllables per nakshatra (28-system; index = n28 - 1).
-     * The standard 108 pada syllables, transliterated into Burmese.
-     * Magha's မ/မိ/မု/မေ is confirmed by the author; the rest are
-     * the standard forms — the author can correct any spelling that
-     * differs from his book. Abhijit (22) spans a single pada, so it
-     * has no pada syllable of its own ("—").
+     * The standard 108 pada syllables, transliterated into Burmese —
+     * the author's table of 2026-11-06, correct Myanmar spellings per
+     * the original Sanskrit pronunciations (Magha's မ/မီ/မု/မေ
+     * confirmed by him earlier). Abhijit (22) spans a single pada, so
+     * only its first syllable (ဂျု) is ever used.
      */
+    // သရ (pada syllables) — the author's table, 2026-11-06: correct
+    // Myanmar spellings per the original Sanskrit pronunciations
+    // (replacing the mixed-up numerals/English letters/font errors in
+    // the old table). Shravana pada 4 is ဃ (Gha) per his romanization.
+    // Abhijit lists all 4 but the wheel gives it 1 pada (3°20'), so
+    // only ဂျု is ever used.
     val PADA_SYLLABLES = listOf(
-        listOf("ကု", "ကေ", "ကော", "လာ"),      // 1 Ashwini
-        listOf("လိ", "လု", "လေ", "လော"),      // 2 Bharani
-        listOf("အ", "ဣ", "ဥ", "ဧ"),           // 3 Krittika
+        listOf("ချု", "ချေ", "ချော", "လာ"),    // 1 Ashwini
+        listOf("လီ", "လု", "လေ", "လော"),      // 2 Bharani
+        listOf("အ", "အီ", "အု", "အေ"),         // 3 Krittika
         listOf("အို", "ဝ", "ဝိ", "ဝု"),        // 4 Rohini
-        listOf("ဝေ", "ဝေါ", "က", "ကိ"),        // 5 Mrigashira
+        listOf("ဝေ", "ဝေါ", "က", "ကီ"),        // 5 Mrigashira
         listOf("ကု", "ဃ", "င", "ဆ"),          // 6 Ardra
-        listOf("ကေ", "ကော", "ဟ", "ဟိ"),       // 7 Punarvasu
+        listOf("ကေ", "ကော", "ဟ", "ဟီ"),       // 7 Punarvasu
         listOf("ဟု", "ဟေ", "ဟော", "ဒ"),       // 8 Pushya
-        listOf("ဒိ", "ဒု", "ဒေ", "ဒေါ"),       // 9 Ashlesha
-        listOf("မ", "မိ", "မု", "မေ"),         // 10 Magha (confirmed)
-        listOf("မော", "တ", "တိ", "တု"),       // 11 Purva Phalguni
-        listOf("တေ", "တော", "ပ", "ပိ"),       // 12 Uttara Phalguni
-        listOf("ပု", "ရှ", "ဏ", "ထ"),          // 13 Hasta
-        listOf("ပေ", "ပေါ", "ရ", "ရိ"),        // 14 Chitra
+        listOf("ဒီ", "ဒု", "ဒေ", "ဒေါ"),       // 9 Ashlesha
+        listOf("မ", "မီ", "မု", "မေ"),         // 10 Magha (confirmed)
+        listOf("မော", "တ", "တီ", "တု"),       // 11 Purva Phalguni
+        listOf("တေ", "တော", "ပ", "ပီ"),       // 12 Uttara Phalguni
+        listOf("ပု", "ရှင်", "ဏ", "ဌ"),        // 13 Hasta
+        listOf("ပေ", "ပေါ", "ရ", "ရီ"),        // 14 Chitra
         listOf("ရု", "ရေ", "ရော", "တ"),       // 15 Swati
-        listOf("တိ", "တု", "တေ", "တော"),      // 16 Vishakha
-        listOf("န", "နိ", "နု", "နေ"),          // 17 Anuradha
-        listOf("နော", "ယ", "ယိ", "ယု"),        // 18 Jyeshtha
-        listOf("ယေ", "ယော", "ဘ", "ဘိ"),       // 19 Moola
-        listOf("ဘု", "ဓ", "ဖ", "ဓ"),           // 20 Purva Ashadha
-        listOf("ဘေ", "ဘော", "ဇ", "ဇိ"),       // 21 Uttara Ashadha
-        listOf("—"),                            // 22 Abhijit (single pada)
+        listOf("တီ", "တု", "တေ", "တော"),      // 16 Vishakha
+        listOf("န", "နီ", "နု", "နေ"),          // 17 Anuradha
+        listOf("နော", "ယ", "ယီ", "ယု"),        // 18 Jyeshtha
+        listOf("ယေ", "ယော", "ဘ", "ဘီ"),       // 19 Moola
+        listOf("ဘု", "ဓ", "ဖ", "ဎ"),           // 20 Purva Ashadha
+        listOf("ဘေ", "ဘော", "ဇ", "ဇီ"),       // 21 Uttara Ashadha
+        listOf("ဂျု", "ဂျေ", "ဂျော", "ခ"),    // 22 Abhijit (1 pada used)
         listOf("ဇု", "ဇေ", "ဇော", "ဃ"),       // 23 Shravana
-        listOf("ဂ", "ဂိ", "ဂု", "ဂေ"),         // 24 Dhanishta
-        listOf("ဂေါ", "သ", "သိ", "သု"),       // 25 Shatabhisha
-        listOf("သေ", "သော", "ဒ", "ဒိ"),       // 26 Purva Bhadrapada
-        listOf("ဒု", "ထ", "ဈ", "ဏ"),          // 27 Uttara Bhadrapada
-        listOf("ဒေ", "ဒေါ", "ဆ", "ဆိ")        // 28 Revati
+        listOf("ဂ", "ဂီ", "ဂု", "ဂေ"),         // 24 Dhanishta
+        listOf("ဂေါ", "သ", "သီ", "သု"),       // 25 Shatabhisha
+        listOf("သေ", "သော", "ဒ", "ဒီ"),       // 26 Purva Bhadrapada
+        listOf("ဒု", "ထ", "ဈ", "ဉ"),          // 27 Uttara Bhadrapada
+        listOf("ဒေ", "ဒေါ", "စ", "စီ")        // 28 Revati
     )
 
     /**
